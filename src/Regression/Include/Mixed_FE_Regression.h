@@ -111,6 +111,8 @@ class MixedFERegressionBase
 		void addDirichletBC();
 		//! A function which adds Dirichlet boundary conditions only to MatrixnoCov( Remark: BC for areal data are not implemented!)
 		void addDirichletBC_matrix();
+		//! A method which adds Free Boundary Conditions in Monolithic Separable case, for Free Solver (see Massardi);
+		void addFreeBC();
 		//! A method which takes care of missing values setting to 0 the corresponding rows of B_
 		void addNA();
 	 	//! A member function which builds the A vector containing the areas of the regions in case of areal data
@@ -159,7 +161,7 @@ class MixedFERegressionBase
 
         	//! A function which solves the factorized system in presence of covariates (iterative method)
         	template<typename Derived>
-        	MatrixXr solve_covariates_iter(const Eigen::MatrixBase<Derived>&, UInt time_index);
+        	MatrixXr solve_covariates_iter(const Eigen::MatrixBase<Derived>&, UInt time_index, UInt NBlocks = 2);
 
         	// -- methods for the iterative method --
         	//! A method to initialize f
@@ -258,10 +260,10 @@ class MixedFERegressionBase
 		UInt getM_(void) const {return this->M_;}
 		bool isSV(void) const {return this->isSpaceVarying;}
 		bool isIter(void) const {return this->isIterative;}
-		
+
 		//! A method checking the correct LU factorization of the system matrix
-        	bool isMatrixNoCov_factorized() const{return this->matrixNoCovdec_.info() == Eigen::ComputationInfo::Success;}	
-        	
+        	bool isMatrixNoCov_factorized() const{return this->matrixNoCovdec_.info() == Eigen::ComputationInfo::Success;}
+
 		//! A function that given a vector u, performs Q*u efficiently
 		MatrixXr LeftMultiplybyQ(const MatrixXr & u);
 		//! A method returning the WTW_ factorization

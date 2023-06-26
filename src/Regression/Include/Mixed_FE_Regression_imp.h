@@ -48,6 +48,22 @@ void MixedFERegressionBase<InputHandler>::addDirichletBC() //adds boundary condi
 	matrixNoCov_.makeCompressed();
 }
 
+template<typename InputHandler>
+void MixedFERegressionBase<InputHandler>::addFreeBC() // Boundary condition in Monolithic Separable case, for Free Solver (see Massardi);
+{
+
+	Real pen=10e20;
+	UInt nnodes = N_ * M_;
+
+	for( auto i=0; i<N_; i++)
+	 {
+			 matrixNoCov_.coeffRef(2*nnodes + i, 2*nnodes + i) = pen;
+			 matrixNoCov_.coeffRef(3*nnodes-1 - i, 3*nnodes-1 -i) = pen;
+	 }
+
+	matrixNoCov_.makeCompressed();
+}
+
 
 template<typename InputHandler>
 void MixedFERegressionBase<InputHandler>::addDirichletBC_matrix() //adds boundary conditions to all
@@ -413,7 +429,7 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
     SpMat IM(M_, M_); // Matrix temporal_nodes x temporal_nodes
     SpMat phi;     // Dummy for update, old Psi will be overwritten by Psi_tilde
 	// Distinguish between two problem classes
-	if(regressionData_.getFlagParabolic())
+	if(regressionData_.getFlagParabolic()&& !regressionData_.getFlagFiniteDifferences())
 	{ // Parabolic case
             MixedFDRegression <InputHandler> FiniteDifference(mesh_time_, regressionData_);
             FiniteDifference.setDerOperator();
@@ -424,26 +440,60 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
 		// Right hand side correction for the initial condition:
 		rhs_ic_correction_ = (1/(mesh_time_[1]-mesh_time_[0]))*(R0_*(*(regressionData_.getInitialValues())));
 	}
-	else
-	{ // Separable case
-		MixedSplineRegression <InputHandler> Spline(mesh_time_,regressionData_);
-		SpMat IN(N_,N_);
-		Spline.setPhi();
-		Spline.setTimeMass();
-		Spline.smoothSecondDerivative();
-		if(regressionData_.getFlagMass())
-		{ // Mass penalization
-			IM = Spline.getTimeMass();
-			IN = R0_;
+	else if(!regressionData_.getFlagParabolic())
+	{
+		// Separable case - Spline
+		if(!regressionData_.getFlagFiniteDifferences())
+		{
+			MixedSplineRegression <InputHandler> Spline(mesh_time_,regressionData_);
+			SpMat IN(N_,N_);
+			Spline.setPhi();
+			Spline.setTimeMass();
+			Spline.smoothSecondDerivative();
+			if(regressionData_.getFlagMass())
+			{ // Mass penalization
+				IM = Spline.getTimeMass();
+				IN = R0_;
+			}
+			else
+			{ // Identity penalization
+				IM.setIdentity();
+				IN.setIdentity();
+			}
+			phi = Spline.getPhi();
+			SpMat Pt = Spline.getPt();
+			Ptk_ = kroneckerProduct(Pt,IN);
 		}
-		else
-		{ // Identity penalization
-			IM.setIdentity();
-			IN.setIdentity();
+		else // Separable case with Finite Differences
+		{
+			MixedFDRegression <InputHandler> FiniteDifference(mesh_time_, regressionData_);
+			FiniteDifference.setDer2Operator();
+			SpMat D = FiniteDifference.getDer2OpL(); // Matrix of finite differences
+			IM.setIdentity(); // Set as identity matrix
+
+			//MASS LUMPING FOR R0_
+			VectorXr diag(R0_.outerSize());
+			VectorXr diag_inv(R0_.outerSize());
+			SpMat Temp;
+			SpMat Temp_inv;
+			for (UInt k = 0; k < R0_.outerSize(); ++k)
+			{
+				Real val = 0.0;
+				for (SpMat::InnerIterator it(R0_, k); it; ++it)
+					val += it.value();
+				diag(k) = val;
+				diag_inv(k) = 1/val;
+			}
+			Temp = diag.asDiagonal();
+			Temp_inv = diag_inv.asDiagonal();
+			this->R0_lump = Temp;
+			this->R0_lump_inv = Temp_inv;
+			this->R0dec_.compute(this->R0_lump);
+
+			DR0k_ = kroneckerProduct(D, R0_);
+			phi = IM;
 		}
-		phi = Spline.getPhi();
-		SpMat Pt = Spline.getPt();
-		Ptk_ = kroneckerProduct(Pt,IN);
+
 	}
 
 	// Make the Kronecker product to tensorize the system, overwriting old matrices
@@ -465,6 +515,20 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
         R0_.resize(N_ * M_, N_ * M_);
         R0_ = kroneckerProduct(IM, R0_temp);
         R0_.makeCompressed();
+
+				if(regressionData_.getFlagFiniteDifferences()){
+					// Update R0_lump
+					SpMat R0_lump_temp = R0_lump;
+	        R0_lump.resize(N_ * M_, N_ * M_);
+	        R0_lump = kroneckerProduct(IM, R0_lump_temp);
+	        R0_lump.makeCompressed();
+
+					// Update R0_lump_inv
+					SpMat R0_lump_inv_temp = R0_lump_inv;
+	        R0_lump_inv.resize(N_ * M_, N_ * M_);
+	        R0_lump_inv = kroneckerProduct(IM, R0_lump_inv_temp);
+	        R0_lump_inv.makeCompressed();
+				}
 
 	// right hand side correction for the forcing term:
 	if(this->isSpaceVarying)
@@ -495,7 +559,8 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices_iterative(){
     addNA();
 
     // Right hand side correction for the initial condition:
-    rhs_ic_correction_ = (1 / delta)*(R0_*(*(regressionData_.getInitialValues())));
+		if(regressionData_.getFlagParabolic())
+    	rhs_ic_correction_ = (1 / delta)*(R0_*(*(regressionData_.getInitialValues())));
 
     // right hand side correction for the forcing term:
     if(this->isSpaceVarying)
@@ -602,6 +667,108 @@ void MixedFERegressionBase<InputHandler>::buildMatrixNoCov(const SpMat & NWblock
 	matrixNoCov_.makeCompressed();
 }
 
+//OVERLOADING: buildMatrixNoCov fills the system's matrix in the separable case with Finite Differences by taking as input the block matrices
+
+template<typename InputHandler>
+void MixedFERegressionBase<InputHandler>::buildMatrixNoCov(const SpMat & NWblock, const SpMat & WCblock, const SpMat & SWblock, const SpMat & CCblock,  const SpMat & SEblock)
+{
+    UInt nnodes = N_; // only space and Iterative method
+    if (regressionData_.isSpaceTime() && !this->isIterative)
+        nnodes *= M_;
+
+  	// Vector to be filled with the triplets used to build _coeffmatrix (reserved with the right dimension)
+  	std::vector<coeff> tripletAll;
+  	tripletAll.reserve(NWblock.nonZeros() + 2*WCblock.nonZeros() + 2*SWblock.nonZeros() + CCblock.nonZeros() + SEblock.nonZeros());
+
+  	// Parsing all matrices, reading the values to be put inside _coeffmatrix, coordinates according to the rules
+  	for(UInt k=0; k<NWblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(NWblock,k); it; ++it)
+  		{
+  			tripletAll.push_back(coeff(it.row(), it.col(),it.value()));
+  		}
+    for(UInt k=0; k<WCblock.outerSize(); ++k)
+    	for(SpMat::InnerIterator it(WCblock,k); it; ++it)
+    	{
+    		tripletAll.push_back(coeff(it.row()+nnodes, it.col(),it.value()));
+        tripletAll.push_back(coeff(it.col(), it.row()+nnodes,it.value()));
+    	}
+    for(UInt k=0; k<SWblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(SWblock,k); it; ++it)
+  		{
+  			tripletAll.push_back(coeff(it.col(), it.row()+2*nnodes,it.value()));
+        tripletAll.push_back(coeff(it.row()+2*nnodes, it.col(), it.value()));
+  		}
+    for(UInt k=0; k<CCblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(CCblock,k); it; ++it)
+  		{
+  			tripletAll.push_back(coeff(it.row()+nnodes, it.col()+nnodes,it.value()));
+  		}
+  	for(UInt k=0; k<SEblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(SEblock,k); it; ++it)
+  		{
+  			tripletAll.push_back(coeff(it.row()+2*nnodes, it.col()+2*nnodes,it.value()));
+  		}
+
+  	// Define, resize, fill and compress
+  	matrixNoCov_.setZero();
+  	matrixNoCov_.resize(3*nnodes,3*nnodes);
+  	matrixNoCov_.setFromTriplets(tripletAll.begin(),tripletAll.end());
+  	matrixNoCov_.makeCompressed();
+}
+
+//OVERLOADING: buildMatrixNoCov fills the system's matrix in the separable case with Finite Differences and Preconditioner by taking as input the block matrices
+
+template<typename InputHandler>
+void MixedFERegressionBase<InputHandler>::buildMatrixNoCov(const SpMat & NWblock, const SpMat & CWblock, const SpMat & SWblock, const SpMat & NCblock, const SpMat & CCblock,  const SpMat & NEblock)
+{
+    UInt nnodes = N_; // only space and Iterative method
+    if (regressionData_.isSpaceTime() && !this->isIterative)
+        nnodes *= M_;
+
+  	// Vector to be filled with the triplets used to build _coeffmatrix (reserved with the right dimension)
+  	std::vector<coeff> tripletAll;
+  	tripletAll.reserve(NWblock.nonZeros() + CWblock.nonZeros() + SWblock.nonZeros() + NCblock.nonZeros() + 2*CCblock.nonZeros() + NEblock.nonZeros());
+
+  	// Parsing all matrices, reading the values to be put inside _coeffmatrix, coordinates according to the rules
+  	for(UInt k=0; k<NWblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(NWblock,k); it; ++it)
+  		{
+  			tripletAll.push_back(coeff(it.row(), it.col(),it.value()));
+  		}
+    for(UInt k=0; k<CWblock.outerSize(); ++k)
+    	for(SpMat::InnerIterator it(CWblock,k); it; ++it)
+    	{
+    		tripletAll.push_back(coeff(it.row()+nnodes, it.col(),it.value()));
+    	}
+    for(UInt k=0; k<SWblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(SWblock,k); it; ++it)
+  		{
+        tripletAll.push_back(coeff(it.row()+2*nnodes, it.col(), it.value()));
+  		}
+    for(UInt k=0; k<NCblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(NCblock,k); it; ++it)
+  		{
+  			tripletAll.push_back(coeff(it.col(), it.row()+nnodes,it.value()));
+  		}
+  	for(UInt k=0; k<CCblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(CCblock,k); it; ++it)
+  		{
+  			tripletAll.push_back(coeff(it.row()+nnodes, it.col()+nnodes,-it.value()));
+				tripletAll.push_back(coeff(it.row()+2*nnodes, it.col()+2*nnodes,-it.value()));
+  		}
+		for(UInt k=0; k<NEblock.outerSize(); ++k)
+  		for(SpMat::InnerIterator it(NEblock,k); it; ++it)
+  		{
+  			tripletAll.push_back(coeff(it.row(), it.col()+2*nnodes,it.value()));
+  		}
+
+  	// Define, resize, fill and compress
+  	matrixNoCov_.setZero();
+  	matrixNoCov_.resize(3*nnodes,3*nnodes);
+  	matrixNoCov_.setFromTriplets(tripletAll.begin(),tripletAll.end());
+  	matrixNoCov_.makeCompressed();
+	}
+
 //----------------------------------------------------------------------------//
 // Factorizer & Solver
 template<typename InputHandler>
@@ -620,11 +787,12 @@ void MixedFERegressionBase<InputHandler>::system_factorize()
 	{ // Needed only if there are covariates, else we can stop before
 		// Second phase: factorization of matrix  G =  C + [V * matrixNoCov^-1 * U]= C + D
 		// Definition of matrix U = [ psi^T * A * W | 0 ]^T and V= [ W^T*psi| 0]
-        isUVComputed=true;
+    isUVComputed=true;
+		UInt NBlocks = regressionData_.getFlagFiniteDifferences() ? 3 : 2; //Number of blocks inside the system matrix;
 
 		MatrixXr W(*(this->regressionData_.getCovariates()));
-		U_ = MatrixXr::Zero(2*nnodes,W.cols());
-		V_ = MatrixXr::Zero(W.cols(),2*nnodes);
+		U_ = MatrixXr::Zero(NBlocks*nnodes,W.cols());
+		V_ = MatrixXr::Zero(W.cols(),NBlocks*nnodes);
 
 		if(P->size()==0)
 		{
@@ -670,16 +838,16 @@ void MixedFERegressionBase<InputHandler>::system_factorize()
 
 template<typename InputHandler>
 template<typename Derived>
-MatrixXr MixedFERegressionBase<InputHandler>::solve_covariates_iter(const Eigen::MatrixBase<Derived> & b, UInt time_index)
+MatrixXr MixedFERegressionBase<InputHandler>::solve_covariates_iter(const Eigen::MatrixBase<Derived> & b, UInt time_index, UInt NBlocks)
 {
     //Iterative method, called only if there are covariates
     //splits the matrices U,V (built in system_factorize) and find the solution
 
     MatrixXr W(*(this->regressionData_.getCovariates()));
-        MatrixXr V_k =  MatrixXr::Zero(V_.rows(),2*N_);
+        MatrixXr V_k =  MatrixXr::Zero(V_.rows(),NBlocks*N_);
         V_k.leftCols(N_) = V_.block(0, time_index*N_ , V_.rows(), N_ );
 
-        MatrixXr U_k =  MatrixXr::Zero(2*N_, U_.cols());
+        MatrixXr U_k =  MatrixXr::Zero(NBlocks*N_, U_.cols());
         U_k.topRows(N_) = U_.block(time_index*N_ ,0, N_, U_.cols());
 
         MatrixXr D = V_k*matrixNoCovdec_.solve(U_k);
@@ -840,7 +1008,7 @@ void MixedFERegressionBase<InputHandler>::computeDegreesOfFreedomExact(UInt outp
         }
     }
 
-    X3 -= P; 
+    X3 -= P;
     Eigen::PartialPivLU<MatrixXr> Dsolver(X3);
 
     const auto k = regressionData_.getObservationsIndices();
@@ -914,11 +1082,11 @@ void MixedFERegressionBase<InputHandler>::computeDOFExact_iterative(UInt output_
 		MatrixXr Q_k = MatrixXr::Zero(nlocations,nlocations);
 		if (regressionData_.getCovariates()->rows() != 0)
 			Q_k = Q_.block(k*nlocations,k*nlocations,nlocations,nlocations);
-		else 
+		else
 			//for (UInt i=0; i<nlocations; i++)
 			//	Q_k(i,i)=1;
 			Q_k = MatrixXr::Identity(nlocations, nlocations);
-		
+
 		if (regressionData_.getNumberOfRegions() == 0)  //pointwise data
 			X1 = Q_k;
 		else //areal data
@@ -945,7 +1113,7 @@ void MixedFERegressionBase<InputHandler>::computeDOFExact_iterative(UInt output_
 
 			UInt nbc_indices = bc_indices->size();
 			Real pen=10e20;
-			for (UInt i = 0; i < (nbc_indices/M_); i++) 
+			for (UInt i = 0; i < (nbc_indices/M_); i++)
 			{
 				UInt id1=(*bc_indices)[i];
 				X3.coeffRef(id1, id1) = pen;
@@ -1292,7 +1460,7 @@ MatrixXr MixedFERegressionBase<InputHandler>::apply_to_b_iter(const MatrixXr & b
 		this->addDirichletBC_matrix();
 
     this->system_factorize();
-        
+
 	optimizationData_.set_last_lS_used(lambdaS);
 	optimizationData_.set_last_lT_used(lambdaT);
 
@@ -1344,7 +1512,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 				 	lambdaS = (optimizationData_.get_lambda_S())[s];
 				 	lambdaT = (optimizationData_.get_lambda_T())[t];
 		 		}
-		 		
+
 			_rightHandSide = rhs;
 
 			if(isGAMData || optimizationData_.get_current_lambdaS()!=optimizationData_.get_last_lS_used() ||
@@ -1390,13 +1558,13 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 			// system solution
 			_solution(s,t) = this->template system_solve(this->_rightHandSide);
 
-			
+
 			if(optimizationData_.get_loss_function()!="GCV" || isGAMData)
 			{
 				_dof(s,t) = -1;
 				_GCV(s,t) = -1;
 			}
-			
+
 
 			// covariates computation
 			if(regressionData_.getCovariates()->rows()!=0)
@@ -1583,7 +1751,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
                 isUVComputed = false;
         }
     }
-    
+
     if(!isGAMData &&
 	(optimizationData_.get_current_lambdaS()!=optimizationData_.get_last_lS_used() ||
 	optimizationData_.get_current_lambdaT()!=optimizationData_.get_last_lT_used()))
@@ -1591,7 +1759,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
 		optimizationData_.set_last_lS_used(optimizationData_.get_current_lambdaS());
 		optimizationData_.set_last_lT_used(optimizationData_.get_current_lambdaT());
 	}
-	
+
     _rightHandSide = rhs;
 
     return this->_solution;
@@ -1899,9 +2067,9 @@ class MixedFERegression<GAMDataLaplace>: public MixedFERegressionBase<Regression
 	public:
 		MixedFERegression(const RegressionData & regressionData, OptimizationData & optimizationData, UInt nnodes_):
 			MixedFERegressionBase<RegressionData>(regressionData, optimizationData, nnodes_) {};
-		
-		MixedFERegression(const std::vector<Real>& mesh_time, 
-			const RegressionData& regressionData, OptimizationData& optimizationData, UInt nnodes_): 
+
+		MixedFERegression(const std::vector<Real>& mesh_time,
+			const RegressionData& regressionData, OptimizationData& optimizationData, UInt nnodes_):
 				MixedFERegressionBase<RegressionData>(mesh_time, regressionData, optimizationData, nnodes_){};
 
 		template<UInt ORDER, UInt mydim, UInt ndim>
@@ -1918,9 +2086,9 @@ class MixedFERegression<GAMDataElliptic>: public MixedFERegressionBase<Regressio
 	public:
 		MixedFERegression(const RegressionDataElliptic & regressionData, OptimizationData & optimizationData, UInt nnodes_):
 			MixedFERegressionBase<RegressionDataElliptic>(regressionData, optimizationData, nnodes_) {};
-		
+
 		MixedFERegression(const std::vector<Real>& mesh_time,
-                      const RegressionDataElliptic& regressionData, OptimizationData& optimizationData, UInt nnodes_): 
+                      const RegressionDataElliptic& regressionData, OptimizationData& optimizationData, UInt nnodes_):
                 		MixedFERegressionBase<RegressionDataElliptic>(mesh_time, regressionData, optimizationData, nnodes_){};
 
 		template< UInt ORDER, UInt mydim, UInt ndim>
@@ -1945,9 +2113,9 @@ class MixedFERegression<GAMDataEllipticSpaceVarying>: public MixedFERegressionBa
 	public:
 		MixedFERegression(const RegressionDataEllipticSpaceVarying & regressionData, OptimizationData & optimizationData, UInt nnodes_):
 			MixedFERegressionBase<RegressionDataEllipticSpaceVarying>( regressionData, optimizationData, nnodes_) {};
-		
-		MixedFERegression(const std::vector<Real>& mesh_time, 
-			const RegressionDataEllipticSpaceVarying& regressionData, OptimizationData& optimizationData, UInt nnodes_): 		
+
+		MixedFERegression(const std::vector<Real>& mesh_time,
+			const RegressionDataEllipticSpaceVarying& regressionData, OptimizationData& optimizationData, UInt nnodes_):
 				MixedFERegressionBase<RegressionDataEllipticSpaceVarying>(mesh_time, regressionData, optimizationData, nnodes_){};
 
 		template<UInt ORDER, UInt mydim, UInt ndim>
