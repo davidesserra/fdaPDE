@@ -303,7 +303,7 @@ eval.FEM.time <- function(FEM.time, locations = NULL, time.instants = NULL, spac
       warning("the first value of lambdaS is being used")
     if(dim(FEM.time$coeff)[3]>1 && lambdaT==1)
       warning("the first value of lambdaT is being used")
-    f = FEM.time(coeff=array(FEM.time$coeff[,lambdaS,lambdaT]),time_mesh=FEM.time$mesh_time,FEMbasis=FEM.time$FEMbasis,FLAG_PARABOLIC=FEM.time$FLAG_PARABOLIC)
+    f = FEM.time(coeff=array(FEM.time$coeff[,lambdaS,lambdaT]),time_mesh=FEM.time$mesh_time,FEMbasis=FEM.time$FEMbasis,FLAG_PARABOLIC=FEM.time$FLAG_PARABOLIC,FLAG_FINITEDIFFERENCES =FEM.time$FLAG_FINITEDIFFERENCES)
   }
   else
     f = FEM.time

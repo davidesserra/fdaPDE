@@ -1,7 +1,7 @@
 CPP_smooth.manifold.FEM.time<-function(locations, time_locations, observations, FEMbasis, time_mesh,
                                        covariates = NULL, ndim, mydim, BC = NULL,
                                        incidence_matrix = NULL, areal.data.avg = TRUE,
-                                       FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, threshold = 10^(-4), max.steps = 50, IC, 
+                                       FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, threshold = 10^(-4), max.steps = 50, IC, 
                                        search, bary.locations, optim , lambdaS = NULL, lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05, inference.data.object)
 {
 
@@ -136,6 +136,8 @@ CPP_smooth.manifold.FEM.time<-function(locations, time_locations, observations, 
   storage.mode(FLAG_PARABOLIC) <-"integer"
   FLAG_ITERATIVE <- as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE) <-"integer"
+  FLAG_FINITEDIFFERENCES <- as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES) <-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)

@@ -1,4 +1,4 @@
-checkSmoothingParameters_time<-function(locations = NULL, time_locations=NULL, observations, FEMbasis, time_mesh = NULL, covariates = NULL, PDE_parameters=NULL, BC = NULL, incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, FLAG_ITERATIVE = FALSE, threshold, max.steps, IC = NULL, search, bary.locations = NULL, optim, lambdaS = NULL, lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05)
+checkSmoothingParameters_time<-function(locations = NULL, time_locations=NULL, observations, FEMbasis, time_mesh = NULL, covariates = NULL, PDE_parameters=NULL, BC = NULL, incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, FLAG_ITERATIVE = FALSE, FLAG_FINITEDIFFERENCES = FALSE, threshold, max.steps, IC = NULL, search, bary.locations = NULL, optim, lambdaS = NULL, lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05)
 {
   #################### Parameter Check #########################
   
@@ -104,8 +104,18 @@ checkSmoothingParameters_time<-function(locations = NULL, time_locations=NULL, o
   if(!is.logical(FLAG_ITERATIVE))
     stop("'FLAG_ITERATIVE' is not logical")
   
-  if(FLAG_PARABOLIC==FALSE & FLAG_ITERATIVE==TRUE)
-    stop("The iterative method cannot be chosen for the separable case")
+  if (is.null(FLAG_FINITEDIFFERENCES))
+    stop("FLAG_FINITEDIFFERENCES required;  is NULL.")
+  if(!is.logical(FLAG_FINITEDIFFERENCES))
+    stop("'FLAG_FINITEDIFFERENCES' is not logical")
+  
+  if(FLAG_PARABOLIC==FALSE & FLAG_ITERATIVE==TRUE & FLAG_FINITEDIFFERENCES==FALSE)
+    stop("The iterative method cannot be chosen for the non separable case")
+  if(FLAG_PARABOLIC==TRUE & FLAG_ITERATIVE==FALSE & FLAG_FINITEDIFFERENCES==TRUE)
+    stop("The parabolic method cannot be chosen for the finite differences case")
+  if(FLAG_PARABOLIC==TRUE & FLAG_ITERATIVE==TRUE & FLAG_FINITEDIFFERENCES==TRUE)
+    stop("The parabolic method cannot be chosen for the finite differences case")
+  
   
   # Check max.steps and threshold for the iterative method 
   if(!all.equal(max.steps, as.integer(max.steps)) || max.steps <= 0 )

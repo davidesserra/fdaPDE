@@ -1,6 +1,6 @@
 CPP_smooth.GAM.FEM.time <- function(locations, time_locations, observations, FEMbasis, time_mesh,
                                     covariates = NULL, ndim, mydim, BC = NULL, incidence_matrix = NULL,
-                                    areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, 
+                                    areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, 
                                     mu0 = NULL, max.steps.FPIRLS = 15, scale.param = NULL, threshold.FPIRLS = 0.0002020,
                                     search, bary.locations, optim, lambdaS = NULL, lambdaT = NULL,
                                     DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -97,6 +97,8 @@ CPP_smooth.GAM.FEM.time <- function(locations, time_locations, observations, FEM
   storage.mode(FLAG_PARABOLIC) <- "integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)
@@ -191,7 +193,7 @@ CPP_smooth.GAM.FEM.time <- function(locations, time_locations, observations, FEM
     "gam_Laplace_time", locations, bary.locations, time_locations,
     observations, FEMbasis$mesh, time_mesh, FEMbasis$order, mydim, ndim,
     covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg,
-    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
+    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
     mu0, scale.param, search, optim, lambdaS, lambdaT,
     DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix,
     GCV.inflation.factor, lambda.optimization.tolerance,
@@ -202,7 +204,7 @@ CPP_smooth.GAM.FEM.time <- function(locations, time_locations, observations, FEM
 
 CPP_smooth.GAM.FEM.PDE.time <- function(locations, time_locations, observations, FEMbasis, time_mesh,
                                         covariates = NULL, PDE_parameters, ndim, mydim, BC = NULL,
-                                        incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, 
+                                        incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, 
                                         max.steps, threshold, IC, FAMILY, mu0 = NULL, max.steps.FPIRLS = 15, scale.param = NULL,
                                         threshold.FPIRLS = 0.0002020, search, bary.locations, optim, lambdaS = NULL,
                                         lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -318,6 +320,8 @@ CPP_smooth.GAM.FEM.PDE.time <- function(locations, time_locations, observations,
   storage.mode(FLAG_PARABOLIC) <- "integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)
@@ -418,7 +422,7 @@ CPP_smooth.GAM.FEM.PDE.time <- function(locations, time_locations, observations,
     "gam_PDE_time", locations, bary.locations, time_locations, observations,
     FEMbasis$mesh, time_mesh, FEMbasis$order, mydim, ndim, PDE_parameters$K,
     PDE_parameters$b, PDE_parameters$c, covariates, BC$BC_indices,
-    BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold,
+    BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold,
     IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, mu0, scale.param, search,
     optim, lambdaS, lambdaT, DOF.stochastic.realizations, DOF.stochastic.seed,
     DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance,
@@ -429,7 +433,7 @@ CPP_smooth.GAM.FEM.PDE.time <- function(locations, time_locations, observations,
 
 CPP_smooth.GAM.FEM.PDE.sv.time <- function(locations, time_locations, observations, FEMbasis, time_mesh,
                                            covariates = NULL, PDE_parameters, ndim, mydim, BC = NULL,
-                                           incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, 
+                                           incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, 
                                            max.steps, threshold, IC, FAMILY, mu0 = NULL, max.steps.FPIRLS = 15, scale.param = NULL,
                                            threshold.FPIRLS = 0.0002020, search, bary.locations, optim, lambdaS = NULL,
                                            lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -538,6 +542,10 @@ CPP_smooth.GAM.FEM.PDE.sv.time <- function(locations, time_locations, observatio
   storage.mode(FLAG_MASS) <- "integer"
   FLAG_PARABOLIC <- as.integer(FLAG_PARABOLIC)
   storage.mode(FLAG_PARABOLIC) <- "integer"
+  FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
+  storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   IC <- as.matrix(IC)
   storage.mode(IC) <- "double"
   storage.mode(search) <- "integer"
@@ -657,7 +665,7 @@ CPP_smooth.GAM.FEM.PDE.sv.time <- function(locations, time_locations, observatio
     observations, FEMbasis$mesh, time_mesh, FEMbasis$order, mydim, ndim,
     PDE_param_eval$K, PDE_param_eval$b, PDE_param_eval$c, PDE_param_eval$u,
     covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg,
-    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
+    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
     mu0, scale.param, search, optim, lambdaS, lambdaT,
     DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix,
     GCV.inflation.factor, lambda.optimization.tolerance,
@@ -668,7 +676,7 @@ CPP_smooth.GAM.FEM.PDE.sv.time <- function(locations, time_locations, observatio
 
 CPP_smooth.manifold.GAM.FEM.time <- function(locations, time_locations, observations, FEMbasis, time_mesh,
                                     covariates = NULL, ndim, mydim, BC = NULL, incidence_matrix = NULL,
-                                    areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, 
+                                    areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, 
                                     mu0 = NULL, max.steps.FPIRLS = 15, scale.param = NULL, threshold.FPIRLS = 0.0002020,
                                     search, bary.locations, optim, lambdaS = NULL, lambdaT = NULL,
                                     DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -765,6 +773,8 @@ CPP_smooth.manifold.GAM.FEM.time <- function(locations, time_locations, observat
   storage.mode(FLAG_PARABOLIC) <- "integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)
@@ -859,7 +869,7 @@ CPP_smooth.manifold.GAM.FEM.time <- function(locations, time_locations, observat
     "gam_Laplace_time", locations, bary.locations, time_locations,
     observations, FEMbasis$mesh, time_mesh, FEMbasis$order, mydim, ndim,
     covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg,
-    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
+    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
     mu0, scale.param, search, optim, lambdaS, lambdaT,
     DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix,
     GCV.inflation.factor, lambda.optimization.tolerance,
@@ -870,7 +880,7 @@ CPP_smooth.manifold.GAM.FEM.time <- function(locations, time_locations, observat
 
 CPP_smooth.volume.GAM.FEM.time <- function(locations, time_locations, observations, FEMbasis, time_mesh,
                                              covariates = NULL, ndim, mydim, BC = NULL, incidence_matrix = NULL,
-                                             areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, 
+                                             areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, 
                                              mu0 = NULL, max.steps.FPIRLS = 15, scale.param = NULL, threshold.FPIRLS = 0.0002020,
                                              search, bary.locations, optim, lambdaS = NULL, lambdaT = NULL,
                                              DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -967,6 +977,8 @@ CPP_smooth.volume.GAM.FEM.time <- function(locations, time_locations, observatio
   storage.mode(FLAG_PARABOLIC) <- "integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)
@@ -1061,7 +1073,7 @@ CPP_smooth.volume.GAM.FEM.time <- function(locations, time_locations, observatio
     "gam_Laplace_time", locations, bary.locations, time_locations,
     observations, FEMbasis$mesh, time_mesh, FEMbasis$order, mydim, ndim,
     covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg,
-    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
+    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
     mu0, scale.param, search, optim, lambdaS, lambdaT,
     DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix,
     GCV.inflation.factor, lambda.optimization.tolerance,
@@ -1072,7 +1084,7 @@ CPP_smooth.volume.GAM.FEM.time <- function(locations, time_locations, observatio
 
 CPP_smooth.volume.GAM.FEM.PDE.time <- function(locations, time_locations, observations, FEMbasis, time_mesh,
                                         covariates = NULL, PDE_parameters, ndim, mydim, BC = NULL,
-                                        incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, 
+                                        incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES,
                                         max.steps, threshold, IC, FAMILY, mu0 = NULL, max.steps.FPIRLS = 15, scale.param = NULL,
                                         threshold.FPIRLS = 0.0002020, search, bary.locations, optim, lambdaS = NULL,
                                         lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -1185,6 +1197,8 @@ CPP_smooth.volume.GAM.FEM.PDE.time <- function(locations, time_locations, observ
   FLAG_PARABOLIC <- as.integer(FLAG_PARABOLIC)
   storage.mode(FLAG_PARABOLIC) <- "integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(FLAG_ITERATIVE)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
@@ -1286,7 +1300,7 @@ CPP_smooth.volume.GAM.FEM.PDE.time <- function(locations, time_locations, observ
     "gam_PDE_time", locations, bary.locations, time_locations, observations,
     FEMbasis$mesh, time_mesh, FEMbasis$order, mydim, ndim, PDE_parameters$K,
     PDE_parameters$b, PDE_parameters$c, covariates, BC$BC_indices,
-    BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold,
+    BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold,
     IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, mu0, scale.param, search,
     optim, lambdaS, lambdaT, DOF.stochastic.realizations, DOF.stochastic.seed,
     DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance,
@@ -1297,7 +1311,7 @@ CPP_smooth.volume.GAM.FEM.PDE.time <- function(locations, time_locations, observ
 
 CPP_smooth.volume.GAM.FEM.PDE.sv.time <- function(locations, time_locations, observations, FEMbasis, time_mesh,
                                            covariates = NULL, PDE_parameters, ndim, mydim, BC = NULL,
-                                           incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, 
+                                           incidence_matrix = NULL, areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, 
                                            max.steps, threshold, IC, FAMILY, mu0 = NULL, max.steps.FPIRLS = 15, scale.param = NULL,
                                            threshold.FPIRLS = 0.0002020, search, bary.locations, optim, lambdaS = NULL,
                                            lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -1405,6 +1419,10 @@ CPP_smooth.volume.GAM.FEM.PDE.sv.time <- function(locations, time_locations, obs
   storage.mode(FLAG_MASS) <- "integer"
   FLAG_PARABOLIC <- as.integer(FLAG_PARABOLIC)
   storage.mode(FLAG_PARABOLIC) <- "integer"
+  FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
+  storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   IC <- as.matrix(IC)
   storage.mode(IC) <- "double"
   storage.mode(search) <- "integer"
@@ -1524,7 +1542,7 @@ CPP_smooth.volume.GAM.FEM.PDE.sv.time <- function(locations, time_locations, obs
     observations, FEMbasis$mesh, time_mesh, FEMbasis$order, mydim, ndim,
     PDE_param_eval$K, PDE_param_eval$b, PDE_param_eval$c, PDE_param_eval$u,
     covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg,
-    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
+    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
     mu0, scale.param, search, optim, lambdaS, lambdaT,
     DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix,
     GCV.inflation.factor, lambda.optimization.tolerance,
@@ -1535,7 +1553,7 @@ CPP_smooth.volume.GAM.FEM.PDE.sv.time <- function(locations, time_locations, obs
 
 CPP_smooth.graph.GAM.FEM.time <- function(locations, time_locations, observations, FEMbasis, time_mesh,
                                              covariates = NULL, ndim, mydim, BC = NULL, incidence_matrix = NULL,
-                                             areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, 
+                                             areal.data.avg = TRUE, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, 
                                              mu0 = NULL, max.steps.FPIRLS = 15, scale.param = NULL, threshold.FPIRLS = 0.0002020,
                                              search, bary.locations, optim, lambdaS = NULL, lambdaT = NULL,
                                              DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0,
@@ -1635,6 +1653,8 @@ CPP_smooth.graph.GAM.FEM.time <- function(locations, time_locations, observation
   storage.mode(FLAG_PARABOLIC) <- "integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)
@@ -1729,7 +1749,7 @@ CPP_smooth.graph.GAM.FEM.time <- function(locations, time_locations, observation
     "gam_Laplace_time", locations, bary.locations, time_locations,
     observations, FEMbasis$mesh, time_mesh, FEMbasis$order, mydim, ndim,
     covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg,
-    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
+    FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, IC, FAMILY, max.steps.FPIRLS, threshold.FPIRLS,
     mu0, scale.param, search, optim, lambdaS, lambdaT,
     DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix,
     GCV.inflation.factor, lambda.optimization.tolerance,

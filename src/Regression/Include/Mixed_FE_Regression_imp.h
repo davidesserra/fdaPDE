@@ -1368,7 +1368,8 @@ void MixedFERegressionBase<InputHandler>::preapply(EOExpr<A> oper, const Forcing
 	// Define right hand data [rhs]
 	VectorXr rightHandData;
 	getRightHandData(rightHandData); //updated
-	this->_rightHandSide = VectorXr::Zero(2*nnodes);
+	UInt NBlocks = regressionData_.getFlagFiniteDifferences() ? 3 : 2; //Number of blocks inside the system matrix;
+	this->_rightHandSide = VectorXr::Zero(NBlocks*nnodes);
 	this->_rightHandSide.topRows(nnodes)=rightHandData;
 
 }
@@ -1407,10 +1408,31 @@ void MixedFERegressionBase<InputHandler>::buildSystemMatrix(Real lambdaS, Real l
     }
 
     // Update NorthWest block of matrix if separable problem
-    if (regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic())
+    if (regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic() && !regressionData_.getFlagFiniteDifferences())
     {
         this->buildMatrixNoCov(this->DMat_ + lambdaT * Ptk_, R1_lambda, R0_lambda);
     }
+		else if (regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic() && regressionData_.getFlagFiniteDifferences() && !this->isIterative)
+		{
+			 	// Separable monolithic version with preconditioner and lumped matrices
+				UInt nnodes = this->R0_lambda.outerSize();
+				SpMat Id(nnodes, nnodes);
+				Id.setIdentity();
+				this->CWblock = R0_lump_inv * R1_;
+				this->SWblock = R0_lump_inv * DR0k_;
+				this->buildMatrixNoCov(this->DMat_, CWblock, SWblock, -R1_lambda, Id, lambdaT*DR0k_ );
+		}
+		else if (regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic() && regressionData_.getFlagFiniteDifferences() && this->isIterative)
+		{
+				// Separable iterative version with preconditioner and lumped matrices
+				Real delta = mesh_time_[1] - mesh_time_[0];
+				UInt nnodes = this->R0_lambda.outerSize();
+				SpMat Id(nnodes, nnodes);
+				Id.setIdentity();
+				this->CWblock = R0_lump_inv * R1_;
+				this->SWblock = -2*lambdaT/(delta*delta) * Id;
+				this->buildMatrixNoCov(this->DMat_,CWblock,SWblock, -R1_lambda, Id, -2*lambdaT*R0_lump/(delta*delta));
+		}
     else
     {
         this->buildMatrixNoCov(this->DMat_, R1_lambda, R0_lambda);
@@ -1529,9 +1551,14 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 			}
 
 			// Right-hand side correction for space varying PDEs
-			if(this->isSpaceVarying)
+			if(this->isSpaceVarying && !regressionData_.getFlagFiniteDifferences())
 			{
 			    _rightHandSide.bottomRows(nnodes)= (-lambdaS)*rhs_ft_correction_;
+			}
+			else if(this->isSpaceVarying && regressionData_.getFlagFiniteDifferences())
+			{
+			    _rightHandSide.middleRows(nnodes,nnodes) = R0_lump_inv * rhs_ft_correction_;
+
 			}
 
 			// Right-hand side correction for initial condition in parabolic case
@@ -1546,6 +1573,10 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 			// Applying boundary conditions if necessary
 			if(regressionData_.getDirichletIndices()->size() != 0)  // if areal data NO BOUNDARY CONDITIONS
 				addDirichletBC();
+
+			// Applying boundary conditions to the separable case with Finite Differences
+			if(regressionData_.getFlagFiniteDifferences())
+				addFreeBC();
 
 
 			//f Factorization of the system for woodbury decomposition
@@ -1628,6 +1659,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
         this->_beta.resize(sizeLambdaS,sizeLambdaT);
     }
 
+		UInt NBlocks = regressionData_.getFlagFiniteDifferences() ? 3 : 2; // 3 if iterative with Finite Differences penalization, 2 otherwise
     _solution_k_.resize(2 * N_, 1);  // inside the loop over i, it saves the solution for each time instant k
     _rightHandSide_k_.resize(2 * N_); // inside the loop over i, it saves the right hand side term of the system at each time istant k
     _solution_f_old_.resize(nnodes);  // stores f needed to update the rhs term
@@ -1639,7 +1671,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
 
             Real  J = 0, J_old = 10 ^(18);
 
-            _solution(s, t) = VectorXr::Zero(2 * nnodes);
+            _solution(s, t) = VectorXr::Zero(NBlocks * nnodes);
             Real lambdaS;
             Real lambdaT;
             if(!isGAMData) //at the moment only space and space-time are implemented
@@ -1654,33 +1686,68 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
             }
 
             _rightHandSide = rhs;
-            for (UInt i = 0; i < regressionData_.getInitialValues()->rows(); i++)  // p
-            {
-                _rightHandSide(nnodes + i) = lambdaS * lambdaT * rhs_ic_correction_(i);
-            }
+						if(!regressionData_.getFlagFiniteDifferences()){ // Only parabolic case
+		          for (UInt i = 0; i < regressionData_.getInitialValues()->rows(); i++)  // p
+		          {
+		              _rightHandSide(nnodes + i) = lambdaS * lambdaT * rhs_ic_correction_(i);
+		          }
+						}
 
             // Right-hand side correction for space varying PDEs
-            if(this->isSpaceVarying)
+            if(this->isSpaceVarying && !regressionData_.getFlagFiniteDifferences())
             {
-                _rightHandSide.bottomRows(nnodes)= (lambdaS)*rhs_ft_correction_;
+                _rightHandSide.middleRows(nnodes,nnodes)= (-lambdaS)*rhs_ft_correction_;
             }
+
+						if(regressionData_.getFlagFiniteDifferences())
+						{
+							VectorXr diag(R0_.outerSize());
+							VectorXr diag_inv(R0_.outerSize());
+							SpMat Temp;
+							SpMat Temp_inv;
+							for (UInt k = 0; k < R0_.outerSize(); ++k)
+							{
+								Real val = 0.0;
+								for (SpMat::InnerIterator it(R0_, k); it; ++it)
+									val += it.value();
+								diag(k) = val;
+								diag_inv(k) = 1/val;
+							}
+							Temp = diag.asDiagonal();
+							Temp_inv = diag_inv.asDiagonal();
+							this->R0_lump = Temp;
+							this->R0_lump_inv = Temp_inv;
+							this->R0dec_.compute(this->R0_lump);
+							if(this->isSpaceVarying)
+								_rightHandSide.middleRows(nnodes,nnodes)= R0_lump_inv * rhs_ft_correction_;
+						}
 
             SpMat psi_temp_mini=psi_mini;
             // (i=0) Solution Initialization: f^{k,0} (Solving a only space problem)
             // Debugging purpose
             initialize_f(lambdaS, s,t);
 
-            _solution_f_old_ = _solution(s, t).topRows(nnodes);
+						if(regressionData_.getFlagFiniteDifferences()){
+							_solution_l_old_ = VectorXr::Zero(nnodes);
+							initialize_l(s,t);
+							initialize_g_sep(s,t);
+						}
+						else
+							initialize_g(lambdaS,lambdaT, s, t);
 
-            if (regressionData_.getObservationsNA()->size() == 0) {
+						_solution_f_old_ = _solution(s, t).topRows(nnodes);
+
+						matrixNoCov_.resize(NBlocks * N_, NBlocks * N_);
+
+						if (regressionData_.getObservationsNA()->size() == 0) {
                 buildSystemMatrix(lambdaS, lambdaT);
                 // Applying boundary conditions if necessary
                 if (regressionData_.getDirichletIndices()->size() != 0)
                     addDirichletBC();
                 system_factorize();
             }
-
-            initialize_g(lambdaS,lambdaT, s, t);
+						_solution_k_.resize(NBlocks * N_,1);
+						_rightHandSide_k_.resize(NBlocks * N_);
 
             if (regressionData_.getCovariates()->rows() != 0) {
                 MatrixXr W(*(this->regressionData_.getCovariates()));
@@ -1691,8 +1758,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
             psi_mini = psi_temp_mini;
             J = compute_J(s,t);
 
-            //corrrezione rhs
-            _rightHandSide.bottomRows(nnodes) *= lambdaS;
+						SpMat Mat = matrixNoCov_;
 
             UInt i = 1;
             while (stopping_criterion(i, J, J_old))
@@ -1712,16 +1778,35 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
 
 
                     // updating of the right hand side
-                    update_rhs(k, lambdaS, lambdaT, s, t);
+										if(regressionData_.getFlagFiniteDifferences())
+											{
+												update_rhs_sep_prec(k, lambdaS, lambdaT, s, t);
+										}
+										else
+                    	update_rhs(k, lambdaS, lambdaT, s, t);
+
+										if(regressionData_.getFlagFiniteDifferences() && (k==0 || k==M_-1))
+										{
+											for (UInt i = 0; i < N_; ++i) { //penalty on the diagonal to impose null condition for l
+							 					matrixNoCov_.coeffRef(2 * N_ + i, 2 * N_ + i) = 10e20;
+											}
+											matrixNoCovdec_.compute(matrixNoCov_);
+										}
 
                     if (regressionData_.getCovariates()->rows() == 0)
                         _solution_k_ = this->template system_solve(_rightHandSide_k_);
                     else
-                        _solution_k_ = this->template solve_covariates_iter(_rightHandSide_k_,k);
+                        _solution_k_ = this->template solve_covariates_iter(_rightHandSide_k_,k, NBlocks);
 
-                    //Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t)
+										if(k==0 || k==M_-1){
+										matrixNoCovdec_.compute(Mat);
+										}
+
+                    //Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t), and update l_old
                     _solution(s, t).segment(k * N_, N_) = _solution_k_.topRows(N_);
                     _solution(s, t).segment(nnodes + k * N_, N_) = _solution_k_.bottomRows(N_);
+										if(regressionData_.getFlagFiniteDifferences())
+											_solution_l_old_.segment(k * N_, N_) = _solution_k_.bottomRows(N_);
                 }
 
                 _solution_f_old_ = _solution(s, t).topRows(nnodes);  // store f to update the rhs during the iterations
@@ -1849,6 +1934,39 @@ void MixedFERegressionBase<InputHandler>::initialize_g(Real lambdaS, Real lambda
     }
 
 }
+
+
+template<typename InputHandler>
+void MixedFERegressionBase<InputHandler>::initialize_g_sep(UInt& lambdaS_index, UInt& lambdaT_index) {
+
+    UInt nnodes = N_ * M_; // Define number of space-times nodes
+    Eigen::SparseLU<SpMat> Matdec_;
+    Matdec_.compute(R0_);
+    VectorXr rhs_k = VectorXr::Zero(N_);
+
+    for (UInt k = 0; k < M_; ++k) {
+        rhs_k = R1_ * _solution(lambdaS_index, lambdaT_index).segment(k * N_, N_) - _rightHandSide_k_.bottomRows(N_);
+        _solution(lambdaS_index, lambdaT_index).segment(nnodes + k * N_, N_) = Matdec_.solve(rhs_k);
+    }
+}
+
+
+template<typename InputHandler>
+void MixedFERegressionBase<InputHandler>::initialize_l(UInt& lambdaS_index, UInt& lambdaT_index) {
+    UInt nnodes = N_ * M_; // Define number of space-times nodes
+    Real delta = mesh_time_[1] - mesh_time_[0]; // Time interval
+    VectorXr rhs_k = VectorXr::Zero(N_);
+
+    _solution_l_old_ .segment(0, N_)=VectorXr::Zero(N_);
+    for (UInt k = 1; k < (M_-1); ++k) {
+        rhs_k = _solution(lambdaS_index, lambdaT_index).segment( (k+1) * N_, N_) - 2* _solution(lambdaS_index, lambdaT_index).segment( k * N_, N_)
+                + _solution(lambdaS_index, lambdaT_index).segment( (k-1) * N_, N_);
+        _solution_l_old_ .segment(k * N_, N_)= rhs_k / (delta*delta);
+    }
+    _solution_l_old_ .segment((M_-1) * N_, N_)=VectorXr::Zero(N_);
+}
+
+
 template<typename InputHandler>
 void MixedFERegressionBase<InputHandler>::update_rhs(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index){
 
@@ -1869,6 +1987,85 @@ void MixedFERegressionBase<InputHandler>::update_rhs(UInt& time_index, Real lamb
                                            ((lambdaT / delta) * R0_lambda *
                                             _solution_f_old_.segment((time_index - 1) * N_, N_));
 }
+
+
+template<typename InputHandler>
+void MixedFERegressionBase<InputHandler>::update_rhs_sep(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index){
+    UInt M = mesh_time_.size();
+    UInt nnodes = N_ * M; // Define number of space-times nodes
+    Real delta = mesh_time_[1] - mesh_time_[0]; // Time interval
+
+    _rightHandSide_k_.segment(N_, N_) = _rightHandSide.segment(nnodes + (time_index * N_), N_);
+
+    if (time_index == (M - 1)) {
+        _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
+                                        (lambdaT / (delta * delta)) * R0_ * _solution_l_old_.segment((time_index - 1) * N_, N_);
+
+        _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta)) * R0_ *
+                                           _solution_f_old_.segment((time_index - 1) * N_, N_);
+
+    }
+    else{
+        if (time_index == 0){
+            _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
+                                            (lambdaT / (delta * delta)) * R0_ *
+                                            _solution_l_old_.segment(N_, N_);
+
+            _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta)) * R0_ * _solution_f_old_.segment( N_, N_);
+
+        }
+        else{
+            _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
+                                            (lambdaT / (delta * delta)) * R0_ *
+                                            (_solution_l_old_.segment((time_index + 1) * N_, N_) +
+                                             _solution_l_old_.segment((time_index - 1) * N_, N_));
+            _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta)) * R0_ *
+                                               (_solution_f_old_.segment((time_index + 1) * N_, N_) +
+                                                _solution_f_old_.segment((time_index - 1) * N_, N_));
+
+        }
+    }
+}
+
+template<typename InputHandler>
+void MixedFERegressionBase<InputHandler>::update_rhs_sep_prec(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index){
+    UInt M = mesh_time_.size();
+    UInt nnodes = N_ * M; // Define number of space-times nodes
+    Real delta = mesh_time_[1] - mesh_time_[0]; // Time interval
+
+    _rightHandSide_k_.segment(N_, N_) = _rightHandSide.segment(nnodes + (time_index * N_), N_);
+
+    if (time_index == (M - 1)) {
+        _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
+                                        (lambdaT / (delta * delta)) * R0_lump * _solution_l_old_.segment((time_index - 1) * N_, N_);
+
+        _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta))  *
+                                           _solution_f_old_.segment((time_index - 1) * N_, N_);
+
+    }
+    else{
+        if (time_index == 0){
+            _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
+                                            (lambdaT / (delta * delta)) * R0_lump *
+                                            _solution_l_old_.segment(N_, N_);
+
+            _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta))  * _solution_f_old_.segment( N_, N_);
+
+        }
+        else{
+            _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
+                                            (lambdaT / (delta * delta)) * R0_lump *
+                                            (_solution_l_old_.segment((time_index + 1) * N_, N_) +
+                                             _solution_l_old_.segment((time_index - 1) * N_, N_));
+            _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta)) *
+                                               (_solution_f_old_.segment((time_index + 1) * N_, N_) +
+                                                _solution_f_old_.segment((time_index - 1) * N_, N_));
+
+        }
+    }
+}
+
+
 
 template<typename InputHandler>
 bool MixedFERegressionBase<InputHandler>::stopping_criterion(UInt& index, Real J, Real J_old) {
@@ -1893,6 +2090,7 @@ Real MixedFERegressionBase<InputHandler>::compute_J(UInt& lambdaS_index, UInt& l
     Real J_MSE = 0;
     Real J_reg = 0;
     Real lambdaS = (optimizationData_.get_lambda_S())[lambdaS_index];
+		Real lambdaT = (optimizationData_.get_lambda_T())[lambdaT_index];
     UInt nlocations = regressionData_.isSpaceTime() ? regressionData_.getNumberofSpaceObservations() : regressionData_.getNumberofObservations();
     const VectorXr *obsp = regressionData_.getObservations();
 
@@ -1918,6 +2116,16 @@ Real MixedFERegressionBase<InputHandler>::compute_J(UInt& lambdaS_index, UInt& l
 
         }
     }
+		if(regressionData_.getFlagFiniteDifferences()){
+			for (UInt k = 0; k < M_; ++k) {
+
+				J_reg += lambdaT * (_solution(lambdaS_index, lambdaT_index).segment(2 * N_ * M_ + k * N_, N_)).transpose() *
+								 (_solution(lambdaS_index, lambdaT_index).segment(2 * N_ * M_ + k * N_, N_));
+
+
+				}
+
+		}
     return (J_MSE + J_reg);
 }
 
@@ -2058,6 +2266,33 @@ void MixedFDRegression<InputHandler>::setDerOperator(void)
 	}
 
 	derOpL_.makeCompressed();
+}
+
+template<typename InputHandler>
+void MixedFDRegression<InputHandler>::setDer2Operator(void)
+{
+	// Build the matrix of finite differences [1/dt1 0 .......... 0]																	 [0 ....0 -1/dtM 1/dtM]
+	UInt M = mesh_time_.size();
+	der2OpL_.resize(M, M);
+
+	// Set the first and the last rows
+	Real delta = mesh_time_[1] - mesh_time_[0];
+	der2OpL_.coeffRef(0,0) = -2/(delta*delta);
+	der2OpL_.coeffRef(0,1) = 1/(delta*delta);
+
+	delta = mesh_time_[M-1] - mesh_time_[M-2];
+	der2OpL_.coeffRef(M-1,M-1) = -2/(delta*delta);
+	der2OpL_.coeffRef(M-1,M-2) = 1/(delta*delta);
+
+	for(UInt i=1; i<M-1; ++i)
+	{
+		delta = mesh_time_[i] - mesh_time_[i-1];
+		der2OpL_.coeffRef(i,i-1) = 1/(delta*delta);
+		der2OpL_.coeffRef(i,i) 	= -2/(delta*delta);
+		der2OpL_.coeffRef(i,i+1) = 1/(delta*delta);
+	}
+
+	der2OpL_.makeCompressed();
 }
 
 // -- GAM PART --

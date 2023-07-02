@@ -168,12 +168,22 @@ class MixedFERegressionBase
         	void initialize_f(Real lambdaS, UInt& lambdaS_index, UInt& lambdaT_index);
         	//! A method to initialize g
         	void initialize_g(Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
+					//! A method to initialize g in the separable Finite Differences case
+					void initialize_g_sep(UInt& lambdaS_index, UInt& lambdaT_index);
+					//! A method to initialize l (separable Finite Differences case)
+					void initialize_l(UInt& lambdaS_index, UInt& lambdaT_index);
+
         	//! A method that stops the iterative algorithm based on difference between functionals J_k J_k+1 or n_iterations > max_num_iterations .
         	bool stopping_criterion(UInt& index, Real J, Real J_old);
         	//!A method that computes and return the current value of the functional J. It is divided in parametric and non parametric part.
         	Real compute_J(UInt& lambdaS_index, UInt& lambdaT_index);
-        	//!  A methdd that update the system rhs for each time instant (iterative method)
+        	//!  A method that updates the system rhs for each time instant (iterative method)
         	void update_rhs(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
+					//!  A method that updates the system rhs for each time instant (iterative separable method)
+					void update_rhs_sep(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
+					//!  A method that updates the system rhs for each time instant (iterative separable method with preconditioner)
+					void update_rhs_sep_prec(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
+
 	public:
 
 		//!A Constructor.
@@ -356,6 +366,9 @@ class MixedFDRegression
 
     	void setDerOperator(void); //!< sets derOpL_
 		const SpMat & getDerOpL(void) const {return derOpL_;}
+
+		void setDer2Operator(void); //!< sets der2OpL_
+		const SpMat & getDer2OpL(void) const {return der2OpL_;}
 
 };
 

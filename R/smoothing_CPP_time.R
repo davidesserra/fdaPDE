@@ -1,7 +1,7 @@
 CPP_smooth.FEM.time<-function(locations, time_locations, observations, FEMbasis, time_mesh,
                               covariates = NULL, ndim, mydim, BC = NULL,
                               incidence_matrix = NULL, areal.data.avg = TRUE,
-                              FLAG_MASS, FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = 10^(-4), max.steps = 50, IC,
+                              FLAG_MASS, FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES, threshold = 10^(-4), max.steps = 50, IC,
                               search, bary.locations, optim , lambdaS = NULL, lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05, inference.data.object)
 {
   # Indexes in C++ starts from 0, in R from 1, opporGCV.inflation.factor transformation
@@ -135,6 +135,8 @@ CPP_smooth.FEM.time<-function(locations, time_locations, observations, FEMbasis,
   storage.mode(FLAG_PARABOLIC) <-"integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)
@@ -277,7 +279,7 @@ CPP_smooth.FEM.time<-function(locations, time_locations, observations, FEMbasis,
   IC <- as.matrix(IC)
   storage.mode(IC) <- "double"
 
-  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1, ifelse(FLAG_FINITEDIFFERENCES,length(time_mesh), length(time_mesh) + 2));
   BC$BC_indices = rep((0:(M-1))*nrow(FEMbasis$mesh$nodes),each=length(BC$BC_indices)) + rep(BC$BC_indices,M)
   BC$BC_values = rep(BC$BC_values,M)
   storage.mode(BC$BC_indices) <- "integer"
@@ -286,7 +288,7 @@ CPP_smooth.FEM.time<-function(locations, time_locations, observations, FEMbasis,
 
   ## Call C++ function
   bigsol <- .Call("regression_Laplace_time", locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
-    mydim, ndim, covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold, 
+    mydim, ndim, covariates, BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold, 
     IC, search, optim, lambdaS, lambdaT, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance, 
     test_Type,interval_Type,implementation_Type,component_Type,exact_Inference,coeff_Inference,beta_0,f_var_Inference,inference_Quantile,
     inference_Alpha,inference_N_Flip,inference_Tol_Fspai, inference_Defined,
@@ -297,7 +299,7 @@ CPP_smooth.FEM.time<-function(locations, time_locations, observations, FEMbasis,
 CPP_smooth.FEM.PDE.time<-function(locations, time_locations, observations, FEMbasis, time_mesh,
                                   covariates = NULL, PDE_parameters, ndim, mydim, BC = NULL,
                                   incidence_matrix = NULL, areal.data.avg = TRUE,
-                                  FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, threshold = 10^(-4), max.steps = 50, IC,
+                                  FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, threshold = 10^(-4), max.steps = 50, IC,
                                   search, bary.locations, optim , lambdaS = NULL, lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05, inference.data.object)
 {
 
@@ -448,6 +450,8 @@ CPP_smooth.FEM.PDE.time<-function(locations, time_locations, observations, FEMba
   storage.mode(FLAG_PARABOLIC) <-"integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)
@@ -572,7 +576,7 @@ CPP_smooth.FEM.PDE.time<-function(locations, time_locations, observations, FEMba
   IC <- as.matrix(IC)
   storage.mode(IC) <- "double"
 
-  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1, ifelse(FLAG_FINITEDIFFERENCES,length(time_mesh), length(time_mesh) + 2));
   BC$BC_indices = rep((0:(M-1))*nrow(FEMbasis$mesh$nodes),each=length(BC$BC_indices)) + rep(BC$BC_indices,M)
   BC$BC_values = rep(BC$BC_values,M)
   storage.mode(BC$BC_indices) <- "integer"
@@ -581,7 +585,7 @@ CPP_smooth.FEM.PDE.time<-function(locations, time_locations, observations, FEMba
   ## Call C++ function
   bigsol <- .Call("regression_PDE_time", locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
                   mydim, ndim, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c, covariates,
-                  BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold,
+                  BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold,
                   IC, search, optim, lambdaS, lambdaT, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance,
                   test_Type,interval_Type,implementation_Type,component_Type,exact_Inference,coeff_Inference,beta_0,f_var_Inference,inference_Quantile,inference_Alpha,inference_N_Flip,inference_Tol_Fspai, inference_Defined,
                   PACKAGE = "fdaPDE")
@@ -591,7 +595,7 @@ CPP_smooth.FEM.PDE.time<-function(locations, time_locations, observations, FEMba
 CPP_smooth.FEM.PDE.sv.time<-function(locations, time_locations, observations, FEMbasis, time_mesh,
                                      covariates = NULL, PDE_parameters, ndim, mydim, BC = NULL,
                                      incidence_matrix = NULL, areal.data.avg = TRUE,
-                                     FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, threshold = 10^(-4), max.steps = 50, IC,
+                                     FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, threshold = 10^(-4), max.steps = 50, IC,
                                      search, bary.locations, optim , lambdaS = NULL, lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05, inference.data.object)
 {
 
@@ -761,6 +765,8 @@ CPP_smooth.FEM.PDE.sv.time<-function(locations, time_locations, observations, FE
   storage.mode(FLAG_PARABOLIC) <-"integer"
   FLAG_ITERATIVE<-as.integer(FLAG_ITERATIVE)
   storage.mode(FLAG_ITERATIVE)<-"integer"
+  FLAG_FINITEDIFFERENCES<-as.integer(FLAG_FINITEDIFFERENCES)
+  storage.mode(FLAG_FINITEDIFFERENCES)<-"integer"
   storage.mode(max.steps) <- "integer"
   storage.mode(threshold) <- "double"
   IC <- as.matrix(IC)
@@ -888,7 +894,7 @@ CPP_smooth.FEM.PDE.sv.time<-function(locations, time_locations, observations, FE
   IC <- as.matrix(IC)
   storage.mode(IC) <- "double"
 
-  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1, ifelse(FLAG_FINITEDIFFERENCES,length(time_mesh), length(time_mesh) + 2));
   BC$BC_indices = rep((0:(M-1))*nrow(FEMbasis$mesh$nodes),each=length(BC$BC_indices)) + rep(BC$BC_indices,M)
   BC$BC_values = rep(BC$BC_values,M)
   storage.mode(BC$BC_indices) <- "integer"
@@ -898,7 +904,7 @@ CPP_smooth.FEM.PDE.sv.time<-function(locations, time_locations, observations, FE
   ## Call C++ function
   bigsol <- .Call("regression_PDE_space_varying_time", locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
     mydim, ndim,PDE_param_eval$K, PDE_param_eval$b, PDE_param_eval$c, PDE_param_eval$u, covariates,
-    BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, max.steps, threshold,
+    BC$BC_indices, BC$BC_values, incidence_matrix, areal.data.avg, FLAG_MASS, FLAG_PARABOLIC, FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES, max.steps, threshold,
     IC, search,  optim, lambdaS, lambdaT, DOF.stochastic.realizations, DOF.stochastic.seed, DOF.matrix, GCV.inflation.factor, lambda.optimization.tolerance,
     test_Type,interval_Type,implementation_Type,component_Type,exact_Inference,coeff_Inference,beta_0,f_var_Inference,inference_Quantile,inference_Alpha,inference_N_Flip,inference_Tol_Fspai,inference_Defined,
     PACKAGE = "fdaPDE")

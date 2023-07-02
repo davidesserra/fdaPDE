@@ -173,8 +173,9 @@ FEM<-function(coeff,FEMbasis)
 #' @param FEMbasis A \code{FEMbasis} object defining the Finite Element basis, created by \link{create.FEM.basis}.
 #' @param time_mesh A vector containing the b-splines knots for separable smoothing and the nodes for finite differences for parabolic smoothing
 #' @param FLAG_PARABOLIC Boolean. If \code{TRUE} the coefficients are from parabolic smoothing, if \code{FALSE} the separable one.
+#' @param FLAG_FINITEDIFFERENCES Boolean. If \code{TRUE} the coefficients are from FINITE_DIFFERENCES smoothing.
 #' @description This function defines a FEM.time object.
-#' @usage FEM.time(coeff,time_mesh,FEMbasis,FLAG_PARABOLIC=FALSE)
+#' @usage FEM.time(coeff,time_mesh,FEMbasis,FLAG_PARABOLIC=FALSE,FLAG_FINITEDIFFERENCES = FALSE)
 #' @return A \code{FEM.time} object. This contains a list with components \code{coeff}, \code{mesh_time}, \code{FEMbasis} and \code{FLAG_PARABOLIC}.
 #' @examples
 #' library(fdaPDE)
@@ -191,34 +192,38 @@ FEM<-function(coeff,FEMbasis)
 #' coeff = rep(fs.test(mesh$nodes[,1], mesh$nodes[,2]),5)
 #' time_mesh = seq(0,1,length.out = 5)
 #' ## Create the FEM object
-#' FEMfunction = FEM.time(coeff, time_mesh, FEMbasis, FLAG_PARABOLIC = TRUE)
+#' FEMfunction = FEM.time(coeff, time_mesh, FEMbasis, FLAG_PARABOLIC = TRUE, FLAG_FINITEDIFFERENCES=FALSE)
 #' ## Plot it at desired time
 #' plot(FEMfunction,0.7)
 #' @export
 
-FEM.time<-function(coeff,time_mesh,FEMbasis,FLAG_PARABOLIC=FALSE)
+FEM.time<-function(coeff,time_mesh,FEMbasis,FLAG_PARABOLIC=FALSE,FLAG_FINITEDIFFERENCES=FALSE)
 {
 
   if(is.vector(coeff)){
     coeff = array(coeff, dim = c(length(coeff),1,1))
   }
 
-  M = ifelse(FLAG_PARABOLIC,length(time_mesh),length(time_mesh)+2)
+  M = ifelse(FLAG_PARABOLIC,length(time_mesh), ifelse(FLAG_FINITEDIFFERENCES,length(time_mesh), length(time_mesh) + 2));
   if (is.null(coeff))
     stop("coeff required;  is NULL.")
   if (is.null(time_mesh))
     stop("time_mesh required;  is NULL.")
   if (is.null(FLAG_PARABOLIC))
     stop("FLAG_PARABOLIC required;  is NULL.")
+  if (is.null(FLAG_FINITEDIFFERENCES))
+    stop("FLAG_FINITEDDIFFERENCES required;  is NULL.")
   if (is.null(FEMbasis))
     stop("FEMbasis required;  is NULL.")
   if(!is(FEMbasis, "FEMbasis"))
     stop("FEMbasis not of class 'FEMbasis'")
   if(dim(coeff)[1] != (FEMbasis$nbasis*M))
     stop("Number of row of 'coeff' different from number of basis")
-
+  
+  if (FLAG_FINITEDIFFERENCES == TRUE)
+    FLAG_PARABOLIC = TRUE
   fclass = NULL
-  fclass = list(coeff=coeff, mesh_time=time_mesh, FLAG_PARABOLIC=FLAG_PARABOLIC, FEMbasis=FEMbasis)
+  fclass = list(coeff=coeff, mesh_time=time_mesh, FLAG_PARABOLIC=FLAG_PARABOLIC, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, FEMbasis=FEMbasis)
   class(fclass)<-"FEM.time"
   return(fclass)
 }

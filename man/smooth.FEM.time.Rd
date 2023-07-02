@@ -7,7 +7,7 @@
 smooth.FEM.time(locations = NULL, time_locations = NULL, observations, FEMbasis, 
 time_mesh=NULL, covariates = NULL, PDE_parameters = NULL,  BC = NULL,
 incidence_matrix = NULL, areal.data.avg = TRUE,
-FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, FLAG_ITERATIVE = FALSE,
+FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, FLAG_ITERATIVE = FALSE, FLAG_FINITEDIFFERENCES = FALSE,
 threshold = 10^(-4), max.steps = 50, IC = NULL,
 search = "tree", bary.locations = NULL,
 family = "gaussian", mu0 = NULL, scale.param = NULL,
@@ -64,6 +64,8 @@ This is only for areal data. In case of pointwise data, this parameter is set to
 \item{FLAG_PARABOLIC}{Boolean. If \code{TRUE} the parabolic problem problem is selected, if \code{FALSE} the separable one.}
 
 \item{FLAG_ITERATIVE}{Boolean. If \code{TRUE} the iterative method is selected, if \code{FALSE} the monolithic one.}
+
+\item{FLAG_FINITEDIFFERENCES}{Boolean. If \code{TRUE} the finite differences method (3x3 block-matrix) is selected, if \code{FALSE} the 2x2 one}
 
 \item{threshold}{This parameter is used for arresting algorithm iterations. Algorithm stops when two successive iterations lead to improvement in penalized log-likelihood smaller than threshold.
 Default value \code{threshold = 10^(-4)}.}

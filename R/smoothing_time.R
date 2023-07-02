@@ -40,6 +40,7 @@ NULL
 #' @param FLAG_MASS Boolean. This parameter is considerd only for separable problems i.e. when \code{FLAG_PARABOLIC==FALSE}. If \code{TRUE} the mass matrix in space and in time are used, if \code{FALSE} they are substituted with proper identity matrices.
 #' @param FLAG_PARABOLIC Boolean. If \code{TRUE} the parabolic problem problem is selected, if \code{FALSE} the separable one.
 #' @param FLAG_ITERATIVE Boolean. If \code{TRUE} the iterative method is selected, if \code{FALSE} the monolithic one.
+#' @param FLAG_FINITEDIFFERENCES Boolean. If \code{TRUE} the finite differences method (3x3 block-matrix) is selected, if \code{FALSE} the 2x2 one
 #' @param threshold This parameter is used for arresting algorithm iterations. Algorithm stops when two successive iterations lead to improvement in penalized log-likelihood smaller than threshold.
 #' Default value \code{threshold = 10^(-4)}.
 #' @param max.steps This parameter is used to limit the maximum number of iteration.
@@ -121,7 +122,7 @@ NULL
 #' @usage smooth.FEM.time(locations = NULL, time_locations = NULL, observations, FEMbasis, 
 #' time_mesh=NULL, covariates = NULL, PDE_parameters = NULL,  BC = NULL,
 #' incidence_matrix = NULL, areal.data.avg = TRUE,
-#' FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, FLAG_ITERATIVE = FALSE,
+#' FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, FLAG_ITERATIVE = FALSE, FLAG_FINITEDIFFERENCES = FALSE,
 #' threshold = 10^(-4), max.steps = 50, IC = NULL,
 #' search = "tree", bary.locations = NULL,
 #' family = "gaussian", mu0 = NULL, scale.param = NULL,
@@ -170,7 +171,7 @@ NULL
 smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations, FEMbasis, time_mesh=NULL,
                           covariates = NULL, PDE_parameters = NULL,  BC = NULL,
                           incidence_matrix = NULL, areal.data.avg = TRUE,
-                          FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE,FLAG_ITERATIVE = FALSE, threshold = 10^(-4), max.steps = 50, IC = NULL,
+                          FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE,FLAG_ITERATIVE = FALSE, FLAG_FINITEDIFFERENCES = FALSE, threshold = 10^(-4), max.steps = 50, IC = NULL,
                           search = "tree", bary.locations = NULL,
                           family = "gaussian", mu0 = NULL, scale.param = NULL,
                           threshold.FPIRLS = 0.0002020, max.steps.FPIRLS = 15,
@@ -325,7 +326,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
   space_varying = checkSmoothingParameters_time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh = time_mesh,
                   covariates = covariates, PDE_parameters = PDE_parameters, BC = BC, 
                   incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg, 
-                  FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, IC = IC,
+                  FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES, threshold = threshold, max.steps = max.steps, IC = IC,
                   search = search, bary.locations = bary.locations,
                   optim = optim, 
                   lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
@@ -426,7 +427,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     bigsol = CPP_smooth.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
       covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
       incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold , max.steps = max.steps, IC = IC,
+      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, threshold = threshold , max.steps = max.steps, IC = IC,
       search = search, bary.locations = bary.locations,
       optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, inference.data.object = inference.data.object)
   }else if(is(FEMbasis$mesh,  "mesh.2D") & !is.null(PDE_parameters) & space_varying==FALSE)
@@ -435,7 +436,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     bigsol = CPP_smooth.FEM.PDE.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
        covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
        incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-       FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, IC = IC,
+       FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, threshold = threshold, max.steps = max.steps, IC = IC,
        search = search, bary.locations = bary.locations,
        optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, inference.data.object = inference.data.object)
                                       
@@ -445,7 +446,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     bigsol = CPP_smooth.FEM.PDE.sv.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
       covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
       incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, IC = IC,
+      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, threshold = threshold, max.steps = max.steps, IC = IC,
       search = search, bary.locations = bary.locations,
       optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, inference.data.object = inference.data.object)
   }else if(is(FEMbasis$mesh, "mesh.2.5D"))
@@ -454,7 +455,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     bigsol = CPP_smooth.manifold.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
       covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
       incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold , max.steps = max.steps, IC = IC,
+      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, threshold = threshold , max.steps = max.steps, IC = IC,
       search = search, bary.locations = bary.locations,
       optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, inference.data.object = inference.data.object)
   }else if(is(FEMbasis$mesh, "mesh.3D") & is.null(PDE_parameters))
@@ -463,7 +464,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     bigsol = CPP_smooth.volume.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
       covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
       incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold , max.steps = max.steps, IC = IC,
+      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, threshold = threshold , max.steps = max.steps, IC = IC,
       search = search, bary.locations = bary.locations,
       optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, inference.data.object = inference.data.object)
   }else if(is(FEMbasis$mesh, "mesh.3D") & !is.null(PDE_parameters) & space_varying==FALSE)
@@ -472,7 +473,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     bigsol = CPP_smooth.volume.FEM.PDE.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
        covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
        incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-       FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, IC = IC,
+       FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, threshold = threshold, max.steps = max.steps, IC = IC,
        search = search, bary.locations = bary.locations,
        optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, inference.data.object = inference.data.object)
                                       
@@ -482,7 +483,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     bigsol = CPP_smooth.volume.FEM.PDE.sv.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
       covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
       incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, max.steps = max.steps, IC = IC,
+      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, threshold = threshold, max.steps = max.steps, IC = IC,
       search = search, bary.locations = bary.locations,
       optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, inference.data.object = inference.data.object)
   }else if(is(FEMbasis$mesh, "mesh.1.5D"))
@@ -491,14 +492,14 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     bigsol = CPP_smooth.graph.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
                                           covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
                                           incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-                                          FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold , max.steps = max.steps, IC = IC,
+                                          FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC,FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES = FLAG_FINITEDIFFERENCES, threshold = threshold , max.steps = max.steps, IC = IC,
                                           search = search, bary.locations = bary.locations,
                                           optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance, inference.data.object = inference.data.object)
 
   }
   # ---------- Solution -----------
   N = nrow(FEMbasis$mesh$nodes)
-  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1, ifelse(FLAG_FINITEDIFFERENCES,length(time_mesh), length(time_mesh) + 2));
 
   dim_1 = ifelse(optim[1]==0 & is.null(DOF.matrix) & optim[3]==0, length(lambdaS), 1)
   dim_2 = ifelse(optim[1]==0 & is.null(DOF.matrix) & optim[3]==0, length(lambdaT), 1)
@@ -620,8 +621,8 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
   }
   class(bary.locations) = "bary.locations"
   # Make FEM.time objects
-  fit.FEM.time  = FEM.time(f, time_mesh, FEMbasis, FLAG_PARABOLIC)
-  PDEmisfit.FEM.time = FEM.time(g, time_mesh, FEMbasis, FLAG_PARABOLIC)
+  fit.FEM.time  = FEM.time(f, time_mesh, FEMbasis, FLAG_PARABOLIC, FLAG_FINITEDIFFERENCES)
+  PDEmisfit.FEM.time = FEM.time(g, time_mesh, FEMbasis, FLAG_PARABOLIC, FLAG_FINITEDIFFERENCES)
   
   # Save statistics and intervals
   if(inference.data.object@definition==1){
@@ -740,6 +741,8 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
   if(FLAG_ITERATIVE)
     warning("Iterative solver not implemented for GAM, switching to block solver")
   FLAG_ITERATIVE = FALSE
+  if(FLAG_FINITEDIFFERENCES)
+    warning("Finite differences solver not implemented for GAM, switching to block solver")
   threshold = 10^(-4)
   max.steps = 50
   #----------------------------------------------------#
@@ -756,7 +759,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                                       time_mesh = time_mesh, covariates = covariates, ndim = ndim,
                                       mydim = mydim, BC = BC, incidence_matrix = incidence_matrix,
                                       areal.data.avg = areal.data.avg, FLAG_MASS = FLAG_MASS,
-                                      FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, 
+                                      FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES, threshold = threshold, 
                                       max.steps = max.steps, IC = IC, FAMILY = family,
                                       mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS,
                                       scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
@@ -775,7 +778,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                                          PDE_parameters = PDE_parameters, ndim = ndim, mydim = mydim,
                                          BC = BC, incidence_matrix = incidence_matrix,
                                          areal.data.avg = areal.data.avg, FLAG_MASS = FLAG_MASS,
-                                         FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE = FLAG_ITERATIVE,
+                                         FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE = FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES,
                                          threshold = threshold, max.steps = max.steps, IC = IC, FAMILY = family,
                                          mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS,
                                          scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
@@ -794,7 +797,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                                             PDE_parameters = PDE_parameters, ndim = ndim, mydim = mydim,
                                             BC = BC, incidence_matrix = incidence_matrix,
                                             areal.data.avg = areal.data.avg, FLAG_MASS = FLAG_MASS,
-                                            FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE = FLAG_ITERATIVE,
+                                            FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE = FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES,
                                             threshold = threshold, max.steps = max.steps, IC = IC, FAMILY = family,
                                             mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS,
                                             scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
@@ -812,7 +815,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                                      time_mesh = time_mesh, covariates = covariates, ndim = ndim,
                                      mydim = mydim, BC = BC, incidence_matrix = incidence_matrix,
                                      areal.data.avg = areal.data.avg, FLAG_MASS = FLAG_MASS,
-                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, 
+                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES, threshold = threshold, 
                                      max.steps = max.steps, IC = IC, FAMILY = family,
                                      mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS,
                                      scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
@@ -830,7 +833,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                                      time_mesh = time_mesh, covariates = covariates, ndim = ndim,
                                      mydim = mydim, BC = BC, incidence_matrix = incidence_matrix,
                                      areal.data.avg = areal.data.avg, FLAG_MASS = FLAG_MASS,
-                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, 
+                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES, threshold = threshold, 
                                      max.steps = max.steps, IC = IC, FAMILY = family,
                                      mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS,
                                      scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
@@ -849,7 +852,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                                      PDE_parameters = PDE_parameters, ndim = ndim, mydim = mydim, 
                                      BC = BC, incidence_matrix = incidence_matrix,
                                      areal.data.avg = areal.data.avg, FLAG_MASS = FLAG_MASS,
-                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, 
+                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES, threshold = threshold, 
                                      max.steps = max.steps, IC = IC, FAMILY = family,
                                      mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS,
                                      scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
@@ -868,7 +871,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                                      PDE_parameters = PDE_parameters, ndim = ndim, mydim = mydim, 
                                      BC = BC, incidence_matrix = incidence_matrix,
                                      areal.data.avg = areal.data.avg, FLAG_MASS = FLAG_MASS,
-                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, 
+                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES, threshold = threshold, 
                                      max.steps = max.steps, IC = IC, FAMILY = family,
                                      mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS,
                                      scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
@@ -886,7 +889,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                                      time_mesh = time_mesh, covariates = covariates, ndim = ndim,
                                      mydim = mydim, BC = BC, incidence_matrix = incidence_matrix,
                                      areal.data.avg = areal.data.avg, FLAG_MASS = FLAG_MASS,
-                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, threshold = threshold, 
+                                     FLAG_PARABOLIC = FLAG_PARABOLIC, FLAG_ITERATIVE=FLAG_ITERATIVE, FLAG_FINITEDIFFERENCES=FLAG_FINITEDIFFERENCES, threshold = threshold, 
                                      max.steps = max.steps, IC = IC, FAMILY = family,
                                      mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS,
                                      scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
@@ -961,8 +964,8 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
   class(bary.locations) = "bary.locations"
 
   # Make FEM.time objects
-  fit.FEM.time = FEM.time(f, time_mesh, FEMbasis, FLAG_PARABOLIC)
-  PDEmisfit.FEM.time = FEM.time(g, time_mesh, FEMbasis, FLAG_PARABOLIC)
+  fit.FEM.time = FEM.time(f, time_mesh, FEMbasis, FLAG_PARABOLIC, FLAG_FINITEDIFFERENCES)
+  PDEmisfit.FEM.time = FEM.time(g, time_mesh, FEMbasis, FLAG_PARABOLIC, FLAG_FINITEDIFFERENCES)
 
   # Prepare return list
   reslist = NULL

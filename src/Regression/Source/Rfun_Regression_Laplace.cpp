@@ -89,11 +89,11 @@ extern "C"
     else if(regressionData.getOrder()==1 && mydim==1 && ndim==2)
       return(regression_skeleton<RegressionData, 1, 1, 2>(regressionData, optimizationData, inferenceData, Rmesh));
     else if(regressionData.getOrder()==2 && mydim==1 && ndim==2)
-      return(regression_skeleton<RegressionData, 2, 1, 2>(regressionData, optimizationData, inferenceData, Rmesh));	
+      return(regression_skeleton<RegressionData, 2, 1, 2>(regressionData, optimizationData, inferenceData, Rmesh));
 
     return(NILSXP);
   }
-  
+
   //! This function manages the various options for Spatio-Temporal Regression
   /*!
     This function is then called from R code.
@@ -118,6 +118,7 @@ extern "C"
     \param Rflag_mass an R-integer that in case of separable problem specifies whether to use mass discretization or identity discretization
     \param Rflag_parabolic an R-integer specifying if the problem is parabolic or separable
     \param Rflag_iterative an R-integer specifying if the method is monolithic or iterative
+    \param Rflag_finitedifferences an R-integer specifying if the method is with FD (3x3 block-matrix) or not (2x2 block-matrix)
     \param Rmax_num_iteration Maximum number of steps run in the iterative algorithm, set to 50 by default.
     \param Rtreshold an R-double used for arresting the iterative algorithm. Algorithm stops when two successive iterations lead to improvement in penalized log-likelihood smaller than threshold.
     \param Ric an R-vector containing the initial condition needed in case of parabolic problem
@@ -146,7 +147,7 @@ extern "C"
     \return R-vectors containg the coefficients of the solution, prediction of the values, optimization data and much more
   */
   SEXP regression_Laplace_time(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rmesh, SEXP Rmesh_time, SEXP Rorder, SEXP Rmydim, SEXP Rndim,
-			       SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,  SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative,
+			       SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,  SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Rflag_iterative, SEXP Rflag_finitedifferences,
 			       SEXP Rmax_num_iteration, SEXP Rtreshold, SEXP Ric, SEXP Rsearch,
 			       SEXP Roptim, SEXP Rlambda_S, SEXP Rlambda_T, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct,
 			       SEXP RtestType, SEXP RintervalType, SEXP RimplementationType,SEXP RcomponentType, SEXP RexactInference, SEXP RcoeffInference,
@@ -154,7 +155,7 @@ extern "C"
   {
     //Set input data
     RegressionData regressionData(Rlocations, RbaryLocations, Rtime_locations, Robservations, Rorder, Rcovariates, RBCIndices, RBCValues,
-				  RincidenceMatrix, RarealDataAvg, Rflag_mass, Rflag_parabolic, Rflag_iterative, Rmax_num_iteration, Rtreshold, Ric, Rsearch);
+				  RincidenceMatrix, RarealDataAvg, Rflag_mass, Rflag_parabolic, Rflag_iterative, Rflag_finitedifferences, Rmax_num_iteration, Rtreshold, Ric, Rsearch);
     OptimizationData optimizationData(Roptim, Rlambda_S, Rlambda_T, Rflag_parabolic, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
     InferenceData inferenceData(RtestType, RintervalType, RimplementationType, RcomponentType, RexactInference, RcoeffInference, Rbeta0, RfvarInference, RinferenceQuantile, RinferenceAlpha, RinferenceFlip, RinferenceTolFspai, RinferenceDefined);
 
@@ -177,7 +178,7 @@ extern "C"
       return(regression_skeleton_time<RegressionData, 1, 1, 2>(regressionData, optimizationData, inferenceData, Rmesh, Rmesh_time));
     else if(regressionData.getOrder()==2 && mydim==1 && ndim==2)
       return(regression_skeleton_time<RegressionData, 2, 1, 2>(regressionData, optimizationData, inferenceData, Rmesh, Rmesh_time));
-            	
+
     return(NILSXP);
   }
 
@@ -248,7 +249,7 @@ extern "C"
 
     return(R_NilValue);
   }
-	
+
   //! This function manages the various options for GAM Spatio-Temporal Regression
   /*!
     This function is then called from R code.
@@ -273,6 +274,7 @@ extern "C"
     \param Rflag_mass an R-integer that in case of separable problem specifies whether to use mass discretization or identity discretization
     \param Rflag_parabolic an R-integer specifying if the problem is parabolic or separable
     \param Rflag_iterative an R-integer specifying if the method is monolithic or iterative
+    \param Rflag_finitedifferences an R-integer specifying if the method is with FD (3x3 block-matrix) or not (2x2 block-matrix)
     \param Rmax_num_iteration Maximum number of steps run in the PIRLS algorithm, set to 15 by default.
     \param Rtreshold an R-double used for arresting FPIRLS algorithm. Algorithm stops when two successive iterations lead to improvement in penalized log-likelihood smaller than threshold.
     \param Rfamily Denotes the distribution of the data, within the exponential family.
@@ -291,16 +293,16 @@ extern "C"
     \param Rsct user defined stopping criterion tolerance for optimized methods (newton or newton with finite differences)
     \return R-vectors containg the coefficients of the solution, prediction of the values, optimization data and much more
   */
-  SEXP gam_Laplace_time(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rmesh, SEXP Rmesh_time, 
-			SEXP Rorder, SEXP Rmydim, SEXP Rndim, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,  SEXP RincidenceMatrix, 
-			SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic,SEXP Rflag_iterative, SEXP Rmax_num_iteration, SEXP Rthreshold, 
+  SEXP gam_Laplace_time(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rmesh, SEXP Rmesh_time,
+			SEXP Rorder, SEXP Rmydim, SEXP Rndim, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,  SEXP RincidenceMatrix,
+			SEXP RarealDataAvg, SEXP Rflag_mass, SEXP Rflag_parabolic,SEXP Rflag_iterative, SEXP Rflag_finitedifferences, SEXP Rmax_num_iteration, SEXP Rthreshold,
 			SEXP Ric, SEXP Rfamily, SEXP Rmax_num_iteration_pirls, SEXP Rthreshold_pirls, SEXP Rmu0, SEXP RscaleParam, SEXP Rsearch,
 			SEXP Roptim, SEXP Rlambda_S, SEXP Rlambda_T, SEXP Rnrealizations, SEXP Rseed, SEXP RDOF_matrix, SEXP Rtune, SEXP Rsct)
   {
     //Set input data
     GAMDataLaplace regressionData(Rlocations, RbaryLocations, Rtime_locations, Robservations, Rorder, Rcovariates, RBCIndices, RBCValues,
 				  RincidenceMatrix, RarealDataAvg, Rflag_mass, Rflag_parabolic,
-				  Rflag_iterative, Rmax_num_iteration, Rthreshold, Ric, Rsearch,
+				  Rflag_iterative, Rflag_finitedifferences, Rmax_num_iteration, Rthreshold, Ric, Rsearch,
 				  Rmax_num_iteration_pirls, Rthreshold_pirls);
     OptimizationData optimizationData(Roptim, Rlambda_S, Rlambda_T, Rflag_parabolic, Rnrealizations, Rseed, RDOF_matrix, Rtune, Rsct);
     std::string family = CHAR(STRING_ELT(Rfamily,0));
@@ -323,7 +325,7 @@ extern "C"
     else if(regressionData.getOrder()==1 && mydim==1 && ndim==2)
       return(GAM_skeleton_time<GAMDataLaplace, 1, 1, 2>(regressionData, optimizationData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
     else if(regressionData.getOrder()==2 && mydim==1 && ndim==2)
-      return(GAM_skeleton_time<GAMDataLaplace, 2, 1, 2>(regressionData, optimizationData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));	
+      return(GAM_skeleton_time<GAMDataLaplace, 2, 1, 2>(regressionData, optimizationData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
 
     return(NILSXP);
   }
