@@ -2,6 +2,7 @@
 #define __MIXED_FE_REGRESSION_IMP_H__
 
 #include <iostream>
+#include <RcppEigen.h>
 #include <chrono>
 #include <random>
 #include <fstream>
@@ -490,7 +491,7 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
 			this->R0_lump_inv = Temp_inv;
 			this->R0dec_.compute(this->R0_lump);
 
-			DR0k_ = kroneckerProduct(D, R0_);
+			DR0k_ = kroneckerProduct(D, R0_lump);
 			phi = IM;
 		}
 
@@ -886,7 +887,8 @@ MatrixXr MixedFERegressionBase<InputHandler>::system_solve(const Eigen::MatrixBa
 	}
 	else{
          // There are numerical issues
-         return VectorXr::Zero(2*N_*M_);
+				 UInt NBlocks = regressionData_.getFlagFiniteDifferences() ? 3 : 2;
+         return VectorXr::Zero(NBlocks*N_*M_);
         }
 }
 
@@ -1553,7 +1555,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 			// Right-hand side correction for space varying PDEs
 			if(this->isSpaceVarying && !regressionData_.getFlagFiniteDifferences())
 			{
-			    _rightHandSide.bottomRows(nnodes)= (-lambdaS)*rhs_ft_correction_;
+			    _rightHandSide.middleRows(nnodes,nnodes)= (-lambdaS)*rhs_ft_correction_;
 			}
 			else if(this->isSpaceVarying && regressionData_.getFlagFiniteDifferences())
 			{

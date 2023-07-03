@@ -9,9 +9,6 @@
 #endif
 
 #include <Rcpp.h>
-#include <R.h>
-#include <Rdefines.h>
-#include <Rinternals.h>
 
 #include <stdint.h>
 #include <iostream>

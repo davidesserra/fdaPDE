@@ -2,6 +2,7 @@
 #define __MIXED_FE_REGRESSION_H__
 
 #include <memory>
+#include <RcppEigen.h>
 #include <type_traits>
 #include "../../FdaPDE.h"
 #include "../../FE_Assemblers_Solvers/Include/Finite_Element.h"
@@ -56,6 +57,11 @@ class MixedFERegressionBase
 		SpMat 		psi_t_;  	//!< Psi ^T matrix of the model
 		SpMat 		Ptk_; 		//!< kron(Pt,IN) (separable version)
 		SpMat 		LR0k_; 		//!< kron(L,R0) (parabolic version)
+		SpMat     DR0k_;    //!< kron(D,R0) (separable version)
+		SpMat     R0_lump;  //! Necessary in the preconditioned case
+		SpMat     R0_lump_inv;
+		SpMat     CWblock;  //! Necessary in the preconditioned case
+		SpMat     SWblock;  //! Necessary in the preconditioned case
 		MatrixXr 	R_; 		//!< R1 ^T * R0^-1 * R1
 		MatrixXr 	H_; 		//!< The hat matrix of the regression
 		MatrixXr	Q_; 		//!< Identity - H, projects onto the orthogonal subspace
@@ -85,8 +91,9 @@ class MixedFERegressionBase
 
 		// members for the iterative method
         	MatrixXr _solution_k_;       //!< A Eigen::MatrixXr: Stores the solution for each time instant (iterative method)
-        	VectorXr _solution_f_old_;  //!< A Eigen::VectorXr: Stores the old system solution (iterative method)
-        	VectorXr _rightHandSide_k_; //!< A Eigen::VectorXr: Stores the update system right hand side (iterative method)
+					VectorXr _solution_f_old_;  //!< A Eigen::VectorXr: Stores the old system solution (iterative method)
+					VectorXr _solution_l_old_; //!< A Eigen::VectorXr: Stores the old system solution's derivative (iterative method)
+					VectorXr _rightHandSide_k_; //!< A Eigen::VectorXr: Stores the update system right hand side (iterative method)
 
         	//Flag to avoid the computation of R0, R1, Psi_ onece already performed
 		bool isAComputed   = false;
@@ -106,6 +113,11 @@ class MixedFERegressionBase
 	    	void setPsi(const MeshHandler<ORDER, mydim, ndim> & mesh_);
 		//! A method computing the no-covariates version of the system matrix
 		void buildMatrixNoCov(const SpMat & NWblock, const SpMat & SWblock,  const SpMat & SEblock);
+
+		void buildMatrixNoCov(const SpMat & NWblock, const SpMat & WCblock, const SpMat & SWblock, const SpMat & CCblock,  const SpMat & SEblock);
+
+		void buildMatrixNoCov(const SpMat & NWblock, const SpMat & CWblock, const SpMat & SWblock, const SpMat & NCblock, const SpMat & CCblock,  const SpMat & NEblock);
+
 
 		//! A function which adds Dirichlet boundary conditions before solving the system ( Remark: BC for areal data are not implemented!)
 		void addDirichletBC();
@@ -195,7 +207,7 @@ class MixedFERegressionBase
 			};
 
 		MixedFERegressionBase(const std::vector<Real> & mesh_time, const InputHandler & regressionData, OptimizationData & optimizationData, UInt nnodes_) :
-			mesh_time_(mesh_time), N_(nnodes_), M_(regressionData.getFlagParabolic() ? mesh_time.size()-1 : mesh_time.size()-1+MixedSplineRegression<InputHandler>::SPLINE_DEGREE),
+			mesh_time_(mesh_time), N_(nnodes_), M_(regressionData.getFlagParabolic() ? mesh_time.size()-1 : (regressionData.getFlagFiniteDifferences() ? mesh_time.size() : mesh_time.size()-1+MixedSplineRegression<InputHandler>::SPLINE_DEGREE)),
 			regressionData_(regressionData), optimizationData_(optimizationData), _dof(optimizationData.get_DOF_matrix())
 			{
 		        isGAMData = regressionData.getisGAM();
@@ -359,6 +371,7 @@ class MixedFDRegression
 		const InputHandler & regressionData_;
 
 		SpMat derOpL_; //!< matrix associated with derivation in time
+		SpMat der2OpL_; //!< matrix associated with second derivation in time
 
 	public:
 		MixedFDRegression(const std::vector<Real> & mesh_time, const InputHandler & regressionData):
