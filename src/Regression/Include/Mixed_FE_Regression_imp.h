@@ -471,7 +471,7 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
 			FiniteDifference.setDer2Operator();
 			SpMat D = FiniteDifference.getDer2OpL(); // Matrix of finite differences
 			IM.setIdentity(); // Set as identity matrix
-			DR0k_ = kroneckerProduct(D, R0_lump);
+			DR0k_ = kroneckerProduct(D, R0_);
 			phi = IM;
 		}
 
