@@ -471,26 +471,6 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
 			FiniteDifference.setDer2Operator();
 			SpMat D = FiniteDifference.getDer2OpL(); // Matrix of finite differences
 			IM.setIdentity(); // Set as identity matrix
-
-			//MASS LUMPING FOR R0_
-			VectorXr diag(R0_.outerSize());
-			VectorXr diag_inv(R0_.outerSize());
-			SpMat Temp;
-			SpMat Temp_inv;
-			for (UInt k = 0; k < R0_.outerSize(); ++k)
-			{
-				Real val = 0.0;
-				for (SpMat::InnerIterator it(R0_, k); it; ++it)
-					val += it.value();
-				diag(k) = val;
-				diag_inv(k) = 1/val;
-			}
-			Temp = diag.asDiagonal();
-			Temp_inv = diag_inv.asDiagonal();
-			this->R0_lump = Temp;
-			this->R0_lump_inv = Temp_inv;
-			this->R0dec_.compute(this->R0_lump);
-
 			DR0k_ = kroneckerProduct(D, R0_lump);
 			phi = IM;
 		}
