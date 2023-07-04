@@ -58,8 +58,6 @@ class MixedFERegressionBase
 		SpMat 		Ptk_; 		//!< kron(Pt,IN) (separable version)
 		SpMat 		LR0k_; 		//!< kron(L,R0) (parabolic version)
 		SpMat     DR0k_;    //!< kron(D,R0) (separable version)
-		SpMat     R0_lump;  //! Necessary in the preconditioned case
-		SpMat     R0_lump_inv;
 		SpMat     CWblock;  //! Necessary in the preconditioned case
 		SpMat     SWblock;  //! Necessary in the preconditioned case
 		MatrixXr 	R_; 		//!< R1 ^T * R0^-1 * R1
@@ -193,9 +191,7 @@ class MixedFERegressionBase
         	void update_rhs(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
 					//!  A method that updates the system rhs for each time instant (iterative separable method)
 					void update_rhs_sep(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
-					//!  A method that updates the system rhs for each time instant (iterative separable method with preconditioner)
-					void update_rhs_sep_prec(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index);
-
+					
 	public:
 
 		//!A Constructor.
