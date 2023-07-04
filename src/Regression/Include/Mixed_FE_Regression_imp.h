@@ -1448,21 +1448,16 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 				{
 					buildSystemMatrix(lambdaS);
 				}
-                        	else
+        else
 				{
 					buildSystemMatrix(lambdaS, lambdaT);
 				}
 			}
 
 			// Right-hand side correction for space varying PDEs
-			if(this->isSpaceVarying && !regressionData_.getFlagFiniteDifferences())
+			if(this->isSpaceVarying)
 			{
 			    _rightHandSide.middleRows(nnodes,nnodes)= (-lambdaS)*rhs_ft_correction_;
-			}
-			else if(this->isSpaceVarying && regressionData_.getFlagFiniteDifferences())
-			{
-			    _rightHandSide.middleRows(nnodes,nnodes) = R0_lump_inv * rhs_ft_correction_;
-
 			}
 
 			// Right-hand side correction for initial condition in parabolic case
