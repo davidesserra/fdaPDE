@@ -1680,7 +1680,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
 
                     //Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t), and update l_old
                     _solution(s, t).segment(k * N_, N_) = _solution_k_.topRows(N_);
-                    _solution(s, t).segment(nnodes + k * N_, N_) = _solution_k_.middleRows(N_);
+                    _solution(s, t).segment(nnodes + k * N_, N_) = _solution_k_.middleRows(N_,N_);
 										if(regressionData_.getFlagFiniteDifferences())
 											_solution_l_old_.segment(k * N_, N_) = _solution_k_.bottomRows(N_);
                 }
