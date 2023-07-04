@@ -1593,34 +1593,11 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
 						}
 
             // Right-hand side correction for space varying PDEs
-            if(this->isSpaceVarying && !regressionData_.getFlagFiniteDifferences())
+						if(this->isSpaceVarying)
             {
-                _rightHandSide.middleRows(nnodes,nnodes)= (-lambdaS)*rhs_ft_correction_;
+					    	_rightHandSide.middleRows(nnodes,nnodes)= (-lambdaS)*rhs_ft_correction_;
+
             }
-
-						if(regressionData_.getFlagFiniteDifferences())
-						{
-							VectorXr diag(R0_.outerSize());
-							VectorXr diag_inv(R0_.outerSize());
-							SpMat Temp;
-							SpMat Temp_inv;
-							for (UInt k = 0; k < R0_.outerSize(); ++k)
-							{
-								Real val = 0.0;
-								for (SpMat::InnerIterator it(R0_, k); it; ++it)
-									val += it.value();
-								diag(k) = val;
-								diag_inv(k) = 1/val;
-							}
-							Temp = diag.asDiagonal();
-							Temp_inv = diag_inv.asDiagonal();
-							this->R0_lump = Temp;
-							this->R0_lump_inv = Temp_inv;
-							this->R0dec_.compute(this->R0_lump);
-							if(this->isSpaceVarying)
-								_rightHandSide.middleRows(nnodes,nnodes)= R0_lump_inv * rhs_ft_correction_;
-						}
-
             SpMat psi_temp_mini=psi_mini;
             // (i=0) Solution Initialization: f^{k,0} (Solving a only space problem)
             // Debugging purpose
