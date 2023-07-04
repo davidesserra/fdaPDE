@@ -430,7 +430,7 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
     SpMat IM(M_, M_); // Matrix temporal_nodes x temporal_nodes
     SpMat phi;     // Dummy for update, old Psi will be overwritten by Psi_tilde
 	// Distinguish between two problem classes
-	if(regressionData_.getFlagParabolic()&& !regressionData_.getFlagFiniteDifferences())
+	if(regressionData_.getFlagParabolic() && !regressionData_.getFlagFiniteDifferences())
 	{ // Parabolic case
             MixedFDRegression <InputHandler> FiniteDifference(mesh_time_, regressionData_);
             FiniteDifference.setDerOperator();
@@ -562,6 +562,26 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices_iterative(){
     // Right hand side correction for the initial condition:
 		if(regressionData_.getFlagParabolic())
     	rhs_ic_correction_ = (1 / delta)*(R0_*(*(regressionData_.getInitialValues())));
+
+		if(regressionData_.getFlagFiniteDifferences()){
+			VectorXr diag(R0_.outerSize());
+			VectorXr diag_inv(R0_.outerSize());
+			SpMat Temp;
+			SpMat Temp_inv;
+			for (UInt k = 0; k < R0_.outerSize(); ++k)
+			{
+				Real val = 0.0;
+				for (SpMat::InnerIterator it(R0_, k); it; ++it)
+					val += it.value();
+				diag(k) = val;
+				diag_inv(k) = 1/val;
+			}
+			Temp = diag.asDiagonal();
+			Temp_inv = diag_inv.asDiagonal();
+			this->R0_lump = Temp;
+			this->R0_lump_inv = Temp_inv;
+			this->R0dec_.compute(this->R0_lump);
+		}
 
     // right hand side correction for the forcing term:
     if(this->isSpaceVarying)
@@ -1701,26 +1721,8 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
                 _rightHandSide.middleRows(nnodes,nnodes)= (-lambdaS)*rhs_ft_correction_;
             }
 
-						if(regressionData_.getFlagFiniteDifferences())
+						if(this->isSpaceVarying && regressionData_.getFlagFiniteDifferences())
 						{
-							VectorXr diag(R0_.outerSize());
-							VectorXr diag_inv(R0_.outerSize());
-							SpMat Temp;
-							SpMat Temp_inv;
-							for (UInt k = 0; k < R0_.outerSize(); ++k)
-							{
-								Real val = 0.0;
-								for (SpMat::InnerIterator it(R0_, k); it; ++it)
-									val += it.value();
-								diag(k) = val;
-								diag_inv(k) = 1/val;
-							}
-							Temp = diag.asDiagonal();
-							Temp_inv = diag_inv.asDiagonal();
-							this->R0_lump = Temp;
-							this->R0_lump_inv = Temp_inv;
-							this->R0dec_.compute(this->R0_lump);
-							if(this->isSpaceVarying)
 								_rightHandSide.middleRows(nnodes,nnodes)= R0_lump_inv * rhs_ft_correction_;
 						}
 
@@ -1806,7 +1808,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
 
                     //Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t), and update l_old
                     _solution(s, t).segment(k * N_, N_) = _solution_k_.topRows(N_);
-                    _solution(s, t).segment(nnodes + k * N_, N_) = _solution_k_.middleRows(N_,N_);
+                    _solution(s, t).segment(nnodes + k * N_, N_) = _solution_k_.middleRows(N_);
 										if(regressionData_.getFlagFiniteDifferences())
 											_solution_l_old_.segment(k * N_, N_) = _solution_k_.bottomRows(N_);
                 }
