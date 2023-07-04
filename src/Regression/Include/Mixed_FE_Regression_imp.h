@@ -430,7 +430,7 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
     SpMat IM(M_, M_); // Matrix temporal_nodes x temporal_nodes
     SpMat phi;     // Dummy for update, old Psi will be overwritten by Psi_tilde
 	// Distinguish between two problem classes
-	if(regressionData_.getFlagParabolic()&& !regressionData_.getFlagFiniteDifferences())
+	if(regressionData_.getFlagParabolic() && !regressionData_.getFlagFiniteDifferences())
 	{ // Parabolic case
             MixedFDRegression <InputHandler> FiniteDifference(mesh_time_, regressionData_);
             FiniteDifference.setDerOperator();
@@ -1806,7 +1806,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
 
                     //Store the solution fˆ{k,i}, gˆ{k,i} in _solution(s,t), and update l_old
                     _solution(s, t).segment(k * N_, N_) = _solution_k_.topRows(N_);
-                    _solution(s, t).segment(nnodes + k * N_, N_) = _solution_k_.bottomRows(N_);
+                    _solution(s, t).segment(nnodes + k * N_, N_) = _solution_k_.middleRows(N_);
 										if(regressionData_.getFlagFiniteDifferences())
 											_solution_l_old_.segment(k * N_, N_) = _solution_k_.bottomRows(N_);
                 }
