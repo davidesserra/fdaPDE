@@ -1330,24 +1330,12 @@ void MixedFERegressionBase<InputHandler>::buildSystemMatrix(Real lambdaS, Real l
     }
 		else if (regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic() && regressionData_.getFlagFiniteDifferences() && !this->isIterative)
 		{
-			 	// Separable monolithic version with preconditioner and lumped matrices
-				UInt nnodes = this->R0_lambda.outerSize();
-				SpMat Id(nnodes, nnodes);
-				Id.setIdentity();
-				this->CWblock = R0_lump_inv * R1_;
-				this->SWblock = R0_lump_inv * DR0k_;
-				this->buildMatrixNoCov(this->DMat_, CWblock, SWblock, -R1_lambda, Id, lambdaT*DR0k_ );
+			 	this->buildMatrixNoCov(this->DMat_, -R1_lambda, lambdaT*DR0k_ , R0_lambda, -lambdaT*R0_);
 		}
 		else if (regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic() && regressionData_.getFlagFiniteDifferences() && this->isIterative)
 		{
-				// Separable iterative version with preconditioner and lumped matrices
-				Real delta = mesh_time_[1] - mesh_time_[0];
-				UInt nnodes = this->R0_lambda.outerSize();
-				SpMat Id(nnodes, nnodes);
-				Id.setIdentity();
-				this->CWblock = R0_lump_inv * R1_;
-				this->SWblock = -2*lambdaT/(delta*delta) * Id;
-				this->buildMatrixNoCov(this->DMat_,CWblock,SWblock, -R1_lambda, Id, -2*lambdaT*R0_lump/(delta*delta));
+			Real delta = mesh_time_[1] - mesh_time_[0];
+			this->buildMatrixNoCov(this->DMat_, -R1_lambda, -2*lambdaT*R0_/(delta*delta), R0_lambda, -lambdaT*R0_);
 		}
     else
     {
