@@ -1656,7 +1656,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply_iterative(void) {
                     // updating of the right hand side
 										if(regressionData_.getFlagFiniteDifferences())
 											{
-												update_rhs_sep_prec(k, lambdaS, lambdaT, s, t);
+												update_rhs_sep(k, lambdaS, lambdaT, s, t);
 										}
 										else
                     	update_rhs(k, lambdaS, lambdaT, s, t);
