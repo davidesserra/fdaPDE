@@ -683,58 +683,6 @@ void MixedFERegressionBase<InputHandler>::buildMatrixNoCov(const SpMat & NWblock
   	matrixNoCov_.makeCompressed();
 }
 
-//OVERLOADING: buildMatrixNoCov fills the system's matrix in the separable case with Finite Differences and Preconditioner by taking as input the block matrices
-
-template<typename InputHandler>
-void MixedFERegressionBase<InputHandler>::buildMatrixNoCov(const SpMat & NWblock, const SpMat & CWblock, const SpMat & SWblock, const SpMat & NCblock, const SpMat & CCblock,  const SpMat & NEblock)
-{
-    UInt nnodes = N_; // only space and Iterative method
-    if (regressionData_.isSpaceTime() && !this->isIterative)
-        nnodes *= M_;
-
-  	// Vector to be filled with the triplets used to build _coeffmatrix (reserved with the right dimension)
-  	std::vector<coeff> tripletAll;
-  	tripletAll.reserve(NWblock.nonZeros() + CWblock.nonZeros() + SWblock.nonZeros() + NCblock.nonZeros() + 2*CCblock.nonZeros() + NEblock.nonZeros());
-
-  	// Parsing all matrices, reading the values to be put inside _coeffmatrix, coordinates according to the rules
-  	for(UInt k=0; k<NWblock.outerSize(); ++k)
-  		for(SpMat::InnerIterator it(NWblock,k); it; ++it)
-  		{
-  			tripletAll.push_back(coeff(it.row(), it.col(),it.value()));
-  		}
-    for(UInt k=0; k<CWblock.outerSize(); ++k)
-    	for(SpMat::InnerIterator it(CWblock,k); it; ++it)
-    	{
-    		tripletAll.push_back(coeff(it.row()+nnodes, it.col(),it.value()));
-    	}
-    for(UInt k=0; k<SWblock.outerSize(); ++k)
-  		for(SpMat::InnerIterator it(SWblock,k); it; ++it)
-  		{
-        tripletAll.push_back(coeff(it.row()+2*nnodes, it.col(), it.value()));
-  		}
-    for(UInt k=0; k<NCblock.outerSize(); ++k)
-  		for(SpMat::InnerIterator it(NCblock,k); it; ++it)
-  		{
-  			tripletAll.push_back(coeff(it.col(), it.row()+nnodes,it.value()));
-  		}
-  	for(UInt k=0; k<CCblock.outerSize(); ++k)
-  		for(SpMat::InnerIterator it(CCblock,k); it; ++it)
-  		{
-  			tripletAll.push_back(coeff(it.row()+nnodes, it.col()+nnodes,-it.value()));
-				tripletAll.push_back(coeff(it.row()+2*nnodes, it.col()+2*nnodes,-it.value()));
-  		}
-		for(UInt k=0; k<NEblock.outerSize(); ++k)
-  		for(SpMat::InnerIterator it(NEblock,k); it; ++it)
-  		{
-  			tripletAll.push_back(coeff(it.row(), it.col()+2*nnodes,it.value()));
-  		}
-
-  	// Define, resize, fill and compress
-  	matrixNoCov_.setZero();
-  	matrixNoCov_.resize(3*nnodes,3*nnodes);
-  	matrixNoCov_.setFromTriplets(tripletAll.begin(),tripletAll.end());
-  	matrixNoCov_.makeCompressed();
-	}
 
 //----------------------------------------------------------------------------//
 // Factorizer & Solver
