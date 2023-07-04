@@ -1903,45 +1903,6 @@ void MixedFERegressionBase<InputHandler>::update_rhs_sep(UInt& time_index, Real 
     }
 }
 
-template<typename InputHandler>
-void MixedFERegressionBase<InputHandler>::update_rhs_sep_prec(UInt& time_index, Real lambdaS, Real lambdaT, UInt& lambdaS_index, UInt& lambdaT_index){
-    UInt M = mesh_time_.size();
-    UInt nnodes = N_ * M; // Define number of space-times nodes
-    Real delta = mesh_time_[1] - mesh_time_[0]; // Time interval
-
-    _rightHandSide_k_.segment(N_, N_) = _rightHandSide.segment(nnodes + (time_index * N_), N_);
-
-    if (time_index == (M - 1)) {
-        _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
-                                        (lambdaT / (delta * delta)) * R0_lump * _solution_l_old_.segment((time_index - 1) * N_, N_);
-
-        _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta))  *
-                                           _solution_f_old_.segment((time_index - 1) * N_, N_);
-
-    }
-    else{
-        if (time_index == 0){
-            _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
-                                            (lambdaT / (delta * delta)) * R0_lump *
-                                            _solution_l_old_.segment(N_, N_);
-
-            _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta))  * _solution_f_old_.segment( N_, N_);
-
-        }
-        else{
-            _rightHandSide_k_.topRows(N_) = _rightHandSide.segment(time_index * N_, N_) -
-                                            (lambdaT / (delta * delta)) * R0_lump *
-                                            (_solution_l_old_.segment((time_index + 1) * N_, N_) +
-                                             _solution_l_old_.segment((time_index - 1) * N_, N_));
-            _rightHandSide_k_.bottomRows(N_) = -(lambdaT / (delta * delta)) *
-                                               (_solution_f_old_.segment((time_index + 1) * N_, N_) +
-                                                _solution_f_old_.segment((time_index - 1) * N_, N_));
-
-        }
-    }
-}
-
-
 
 template<typename InputHandler>
 bool MixedFERegressionBase<InputHandler>::stopping_criterion(UInt& index, Real J, Real J_old) {
