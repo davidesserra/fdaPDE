@@ -497,20 +497,6 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices()
         R0_ = kroneckerProduct(IM, R0_temp);
         R0_.makeCompressed();
 
-				if(regressionData_.getFlagFiniteDifferences()){
-					// Update R0_lump
-					SpMat R0_lump_temp = R0_lump;
-	        R0_lump.resize(N_ * M_, N_ * M_);
-	        R0_lump = kroneckerProduct(IM, R0_lump_temp);
-	        R0_lump.makeCompressed();
-
-					// Update R0_lump_inv
-					SpMat R0_lump_inv_temp = R0_lump_inv;
-	        R0_lump_inv.resize(N_ * M_, N_ * M_);
-	        R0_lump_inv = kroneckerProduct(IM, R0_lump_inv_temp);
-	        R0_lump_inv.makeCompressed();
-				}
-
 	// right hand side correction for the forcing term:
 	if(this->isSpaceVarying)
 	{ // otherwise no forcing term needed
